@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.net.*;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -48,6 +49,8 @@ public class RocksDBClient extends DB {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RocksDBClient.class);
 
+  //add tcp socket for communication
+  private Socket socket;
   @GuardedBy("RocksDBClient.class") private static Path rocksDbDir = null;
   @GuardedBy("RocksDBClient.class") private static Path optionsFile = null;
   @GuardedBy("RocksDBClient.class") private static RocksObject dbOptions = null;
@@ -82,6 +85,12 @@ public class RocksDBClient extends DB {
       }
 
       references++;
+      //init socket when initing db
+      try {
+        socket = new Socket(InetAddress.getByName("127.0.0.1"), 1234);
+      } catch (IOException e) {
+        throw new DBException(e);
+      }
     }
   }
 
@@ -200,6 +209,7 @@ public class RocksDBClient extends DB {
 
           rocksDbDir = null;
         }
+        socket.close();
 
       } catch (final IOException e) {
         throw new DBException(e);
@@ -296,7 +306,15 @@ public class RocksDBClient extends DB {
       }
 
       final ColumnFamilyHandle cf = COLUMN_FAMILIES.get(table).getHandle();
+
+      OutputStream out = socket.getOutputStream();
+
       rocksDb.put(cf, key.getBytes(UTF_8), serializeValues(values));
+      System.out.println("size is: " + values.size());
+      out.write(serializeValues(values));
+
+      //close the socket when cleaning up the db
+      out.close();
 
       return Status.OK;
     } catch(final RocksDBException | IOException e) {
