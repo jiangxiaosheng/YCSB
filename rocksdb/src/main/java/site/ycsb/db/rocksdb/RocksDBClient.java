@@ -53,6 +53,7 @@ public class RocksDBClient extends DB {
 
   //add tcp socket for communication
   private Socket socket;
+
   @GuardedBy("RocksDBClient.class") private static Path rocksDbDir = null;
   @GuardedBy("RocksDBClient.class") private static Path optionsFile = null;
   @GuardedBy("RocksDBClient.class") private static RocksObject dbOptions = null;
@@ -314,16 +315,24 @@ public class RocksDBClient extends DB {
       rocksDb.put(cf, key.getBytes(UTF_8), serializeValues(values));
       System.out.println("size is: " + values.size());
 
+
       Map<String, StringByteIterator> newVals = new HashMap<String, StringByteIterator>();
       for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-        if(entry.getValue() instanceof StringByteIterator){
-          newVals.put(entry.getKey(), (StringByteIterator) entry.getValue());
-        } else {
-          System.out.println("not StringByteIterator");
+        ByteIterator tmp = entry.getValue();
+        if(tmp instanceof StringByteIterator){
+          System.out.println("StringByteIterator");
+        } else if (tmp instanceof ByteArrayByteIterator) {
+          System.out.println("ByteArrayByteIterator");
+        } else if (tmp instanceof InputStreamByteIterator) {
+          System.out.println("InputStreamByteIterator");
+        } else if (tmp instanceof RandomByteIterator) {
+          System.out.println("RandomByteIterator");
+        }else {
+          System.out.println("not ByteIterator");
           return Status.ERROR;
         }
       }
-      ReplicatorOp op = new ReplicatorOp(table, key, newVals, new String("insert"));
+      ReplicatorOp op = new ReplicatorOp(table, key, values, new String("insert"));
       Gson gson = new Gson();
       String json = gson.toJson(op);
       out.writeObject(json);

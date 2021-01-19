@@ -25,6 +25,10 @@ public class ByteArrayByteIterator extends ByteIterator {
   private int off;
   private final int len;
 
+  public ByteArrayByteIterator() {
+    this(new byte[0]);
+  }
+
   public ByteArrayByteIterator(byte[] s) {
     this.str = s;
     this.off = 0;

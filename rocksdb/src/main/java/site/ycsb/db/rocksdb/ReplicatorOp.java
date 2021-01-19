@@ -11,10 +11,10 @@ public class ReplicatorOp {
 
   private String table;
   private String key;
-  private Map<String, StringByteIterator> values;
+  private Map<String, ByteIterator> values;
   private String operation;
 
-  public ReplicatorOp(String t, String k, Map<String, StringByteIterator> v, String o) {
+  public ReplicatorOp(String t, String k, Map<String, ByteIterator> v, String o) {
     //TODO: typechecking?
     table = t;
     key = k;
@@ -30,7 +30,7 @@ public class ReplicatorOp {
     return key;
   }
 
-  public Map<String, StringByteIterator> getValues() {
+  public Map<String, ByteIterator> getValues() {
     return values;
   }
 

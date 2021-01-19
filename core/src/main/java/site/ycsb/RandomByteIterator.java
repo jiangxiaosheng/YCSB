@@ -61,6 +61,10 @@ public class RandomByteIterator extends ByteIterator {
     }
   }
 
+  public RandomByteIterator() {
+    this(0);
+  }
+
   public RandomByteIterator(long len) {
     this.len = len;
     this.buf = new byte[6];

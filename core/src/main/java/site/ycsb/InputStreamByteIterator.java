@@ -28,6 +28,10 @@ public class InputStreamByteIterator extends ByteIterator {
   private long off;
   private final boolean resetable;
 
+  public InputStreamByteIterator() {
+    this(null, 0);
+  }
+
   public InputStreamByteIterator(InputStream ins, long len) {
     this.len = len;
     this.ins = ins;

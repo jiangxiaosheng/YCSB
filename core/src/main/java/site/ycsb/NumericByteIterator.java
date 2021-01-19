@@ -25,7 +25,11 @@ public class NumericByteIterator extends ByteIterator {
   private final byte[] payload;
   private final boolean floatingPoint;
   private int off;
-  
+
+  public NumericByteIterator() {
+    this(0);
+  }
+
   public NumericByteIterator(final long value) {
     floatingPoint = false;
     payload = Utils.longToBytes(value);
