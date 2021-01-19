@@ -10,14 +10,20 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.net.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
-
+import com.google.gson.*;
+import org.rocksdb.*;
 
 public class Replicator {
 
   private ServerSocket servSock;
+  private RocksDB rocksDb;
+  private String role;
+
+  public void init(String role) throws DBException {
+  
+  }
 
   public void start(int port) throws IOException {
-    //setup db
     //start the server socket
     try {
       servSock = new ServerSocket(port);
@@ -45,6 +51,7 @@ public class Replicator {
     private BufferedReader in;
     private InputStream instream;
 
+
     public ClientHandler(Socket socket) {
       this.clientSock = socket;
     }
@@ -53,42 +60,33 @@ public class Replicator {
       try {
         out = new PrintWriter(clientSock.getOutputStream(), true);
         instream = clientSock.getInputStream();
-        in = new BufferedReader(new InputStreamReader(instream));
-        String inputLine;
-        //while ((inputLine=in.readLine())!= null) {
-        
-        //while(instream.available() > 0) {
-        final byte[] data = instream.readAllBytes();
-        Map<String, ByteIterator> result = new HashMap<>();
-        System.out.println(data.length);
-        deserializeValues(data, null, result);
-        System.out.println("hello" + result.size());
-        for (Map.Entry<String, ByteIterator> entry : result.entrySet()) {
-          System.out.println(entry.getKey() + ":" + entry.getValue().toString());
+
+        int len;
+        byte[] data = new byte[512];
+        StringBuilder sb = new StringBuilder();
+
+        while ((len = instream.read(data)) != -1) {
+          sb.append(new String(data, 0, len));
         }
-        
-        /*
-        ObjectInputStream objIn = new ObjectInputStream(instream);
-        Map<Object, Object> ret = new HashMap<>();
+        String str = sb.toString().substring(7);
+        System.out.println(str.length());
+        System.out.println(str);
+
+        Gson gson = new Gson();
         try {
-          ret = (Map) objIn.readObject();
-        } catch (ClassNotFoundException e) {
+          ReplicatorOp op = gson.fromJson(str, ReplicatorOp.class);
+          System.out.println(op.getKey());
+        } catch (Exception e) {
           e.printStackTrace();
         }
-        for (Map.Entry<Object, Object> entry : ret.entrySet()) {
-          System.out.println(entry.getKey() + ":" + entry.getValue());
-        }
-        */
-        //}
-        in.close();
-        //objIn.close();
+
         instream.close();
         out.close();
         clientSock.close();
       } catch (IOException e) {
         e.printStackTrace();
       }
-   }
+    }
   }
 
   private Map<String, ByteIterator> deserializeValues(final byte[] values, final Set<String> fields,

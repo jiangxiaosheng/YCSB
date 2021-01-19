@@ -74,6 +74,8 @@ public class StringByteIterator extends ByteIterator {
     return ret;
   }
 
+  public StringByteIterator() {}
+
   public StringByteIterator(String s) {
     this.str = s;
     this.off = 0;

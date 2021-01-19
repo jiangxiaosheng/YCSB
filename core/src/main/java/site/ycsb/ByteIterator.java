@@ -46,6 +46,7 @@ import java.util.Iterator;
  */
 public abstract class ByteIterator implements Iterator<Byte> {
 
+
   @Override
   public abstract boolean hasNext();
 

@@ -36,6 +36,8 @@ import java.net.*;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.gson.*;
+
 /**
  * RocksDB binding for <a href="http://rocksdb.org/">RocksDB</a>.
  *
@@ -307,11 +309,24 @@ public class RocksDBClient extends DB {
 
       final ColumnFamilyHandle cf = COLUMN_FAMILIES.get(table).getHandle();
 
-      OutputStream out = socket.getOutputStream();
+      ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
 
       rocksDb.put(cf, key.getBytes(UTF_8), serializeValues(values));
       System.out.println("size is: " + values.size());
-      out.write(serializeValues(values));
+
+      Map<String, StringByteIterator> newVals = new HashMap<String, StringByteIterator>();
+      for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+        if(entry.getValue() instanceof StringByteIterator){
+          newVals.put(entry.getKey(), (StringByteIterator) entry.getValue());
+        } else {
+          System.out.println("not StringByteIterator");
+          return Status.ERROR;
+        }
+      }
+      ReplicatorOp op = new ReplicatorOp(table, key, newVals, new String("insert"));
+      Gson gson = new Gson();
+      String json = gson.toJson(op);
+      out.writeObject(json);
 
       //close the socket when cleaning up the db
       out.close();
