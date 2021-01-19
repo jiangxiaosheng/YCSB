@@ -53,6 +53,7 @@ public class RocksDBClient extends DB {
 
   //add tcp socket for communication
   private Socket socket;
+  private ObjectOutputStream out;
 
   @GuardedBy("RocksDBClient.class") private static Path rocksDbDir = null;
   @GuardedBy("RocksDBClient.class") private static Path optionsFile = null;
@@ -91,6 +92,7 @@ public class RocksDBClient extends DB {
       //init socket when initing db
       try {
         socket = new Socket(InetAddress.getByName("127.0.0.1"), 1234);
+        out = new ObjectOutputStream(socket.getOutputStream());
       } catch (IOException e) {
         throw new DBException(e);
       }
@@ -212,6 +214,8 @@ public class RocksDBClient extends DB {
 
           rocksDbDir = null;
         }
+        //close the socket when cleaning up the db
+        out.close();
         socket.close();
 
       } catch (final IOException e) {
@@ -310,35 +314,16 @@ public class RocksDBClient extends DB {
 
       final ColumnFamilyHandle cf = COLUMN_FAMILIES.get(table).getHandle();
 
-      ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
 
       rocksDb.put(cf, key.getBytes(UTF_8), serializeValues(values));
       System.out.println("size is: " + values.size());
 
-
-      Map<String, StringByteIterator> newVals = new HashMap<String, StringByteIterator>();
-      for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-        ByteIterator tmp = entry.getValue();
-        if(tmp instanceof StringByteIterator){
-          System.out.println("StringByteIterator");
-        } else if (tmp instanceof ByteArrayByteIterator) {
-          System.out.println("ByteArrayByteIterator");
-        } else if (tmp instanceof InputStreamByteIterator) {
-          System.out.println("InputStreamByteIterator");
-        } else if (tmp instanceof RandomByteIterator) {
-          System.out.println("RandomByteIterator");
-        }else {
-          System.out.println("not ByteIterator");
-          return Status.ERROR;
-        }
-      }
-      ReplicatorOp op = new ReplicatorOp(table, key, values, new String("insert"));
+      ReplicatorOp op = new ReplicatorOp(table, key, serializeValues(values), new String("insert"));
       Gson gson = new Gson();
       String json = gson.toJson(op);
+      // System.out.println(json);
       out.writeObject(json);
 
-      //close the socket when cleaning up the db
-      out.close();
 
       return Status.OK;
     } catch(final RocksDBException | IOException e) {

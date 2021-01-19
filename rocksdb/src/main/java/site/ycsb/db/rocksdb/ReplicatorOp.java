@@ -1,6 +1,5 @@
 package site.ycsb.db.rocksdb;
 
-import site.ycsb.*;
 import java.util.*;
 
 /**
@@ -11,11 +10,10 @@ public class ReplicatorOp {
 
   private String table;
   private String key;
-  private Map<String, ByteIterator> values;
+  private byte[] values;
   private String operation;
 
-  public ReplicatorOp(String t, String k, Map<String, ByteIterator> v, String o) {
-    //TODO: typechecking?
+  public ReplicatorOp(String t, String k, byte[] v, String o) {
     table = t;
     key = k;
     values = v;
@@ -30,7 +28,7 @@ public class ReplicatorOp {
     return key;
   }
 
-  public Map<String, ByteIterator> getValues() {
+  public byte[] getValues() {
     return values;
   }
 
