@@ -88,6 +88,7 @@ public class Replicator {
 
   private class ClientHandler extends Thread {
     private Socket clientSock;
+    private OutputStream outstream;
     // private PrintWriter out;
     private BufferedReader in;
     private InputStream instream;
@@ -98,7 +99,8 @@ public class Replicator {
 
     public void run() {
       try {
-        // out = new PrintWriter(clientSock.getOutputStream(), true);
+        outstream = clientSock.getOutputStream();
+        //out = new PrintWriter(clientSock.getOutputStream(), true);
         instream = clientSock.getInputStream();
         in = new BufferedReader(new InputStreamReader(instream));
 
@@ -110,13 +112,19 @@ public class Replicator {
           } else if (str.length() < 7) {
             System.out.println(str + " is not a valid operation");
           } else {
+            //TODO: error handling
             str = "{"+ str.split("\\{", 2)[1];
             System.out.println(str);
             Gson gson = new Gson();
             //de-serialize json string and handle operation
             try {
               ReplicatorOp op = gson.fromJson(str, ReplicatorOp.class);
-              opHandler(op);
+              if (op.getOp().equals("read")) {
+                final byte[] output = opHandler(op);
+                outstream.write(output);
+              } else {
+                opHandler(op);
+              }
             } catch (Exception e) {
               e.printStackTrace();
             }
@@ -124,7 +132,8 @@ public class Replicator {
         }
         in.close();
         instream.close();
-        // out.close();
+        outstream.close();
+        //out.close();
         clientSock.close();
       } catch (IOException e) {
         e.printStackTrace();
@@ -132,11 +141,11 @@ public class Replicator {
     }
   }
 
-  private void opHandler(ReplicatorOp op) {
+  private byte[] opHandler(ReplicatorOp op) {
 
     String table = op.getTable();
     String key = op.getKey();
-
+    byte[] ret = new byte[0];
     try {
       if (!COLUMN_FAMILIES.containsKey(table)) {
         createColumnFamily(table);
@@ -144,8 +153,48 @@ public class Replicator {
 
       final ColumnFamilyHandle cf = COLUMN_FAMILIES.get(table).getHandle();
       //System.out.println(op.getValues().length);
-      if (op.getOp().equals("insert")) {
-        rocksDb.put(cf, key.getBytes(UTF_8), op.getValues());
+      switch (op.getOp()) {
+        case "insert":
+          rocksDb.put(cf, key.getBytes(UTF_8), op.getValues());
+          break;
+        case "read":
+          final byte[] val = rocksDb.get(cf, key.getBytes(UTF_8));
+          if(val == null) {
+            //return Status.NOT_FOUND;
+            System.out.println("status: not found");
+          } else {
+            ret = val;
+          }
+          break;
+        /*TODO: need to expand the ReplicatorOp class fields
+        case "scan":
+          try(final RocksIterator iterator = rocksDb.newIterator(cf)) {
+            int iterations = 0;
+            for (iterator.seek(startkey.getBytes(UTF_8)); iterator.isValid() && iterations < recordcount;
+                iterator.next()) {
+              final HashMap<String, ByteIterator> values = new HashMap<>();
+              deserializeValues(iterator.value(), fields, values);
+              result.add(values);
+              iterations++;
+            }
+          }*/
+        case "update":
+          final Map<String, ByteIterator> result = new HashMap<>();
+          final Map<String, ByteIterator> update = new HashMap<>();
+          final byte[] currentValues = rocksDb.get(cf, key.getBytes(UTF_8));
+          if(currentValues == null) {
+            System.out.println("status: not found");
+            break;
+          }
+          deserializeValues(currentValues, null, result);
+          deserializeValues(op.getValues(), null, update);
+          //update
+          result.putAll(update);
+          //store
+          rocksDb.put(cf, key.getBytes(UTF_8), serializeValues(result));
+          break;
+        case "delete":
+          rocksDb.delete(cf, key.getBytes(UTF_8));
       }
       //return Status.OK;
       /* confirmation unit
@@ -156,13 +205,14 @@ public class Replicator {
 
       System.out.println(values);
       */
-
       System.out.println("status: ok");
-    } catch(final RocksDBException e) {
+    } catch(final IOException | RocksDBException e) {
       //LOGGER.error(e.getMessage(), e);
       //return Status.ERROR;
       System.out.println("status: error");
+      e.printStackTrace();
     }
+    return ret;
   }
 
   private RocksDB initRocksDB() throws IOException, RocksDBException {
@@ -280,6 +330,61 @@ public class Replicator {
     }
   }
 
+  private Map<String, ByteIterator> deserializeValues(final byte[] values, final Set<String> fields,
+      final Map<String, ByteIterator> result) {
+    final ByteBuffer buf = ByteBuffer.allocate(4);
+
+    int offset = 0;
+    while(offset < values.length) {
+      buf.put(values, offset, 4);
+      buf.flip();
+      final int keyLen = buf.getInt();
+      buf.clear();
+      offset += 4;
+
+      final String key = new String(values, offset, keyLen);
+      offset += keyLen;
+
+      buf.put(values, offset, 4);
+      buf.flip();
+      final int valueLen = buf.getInt();
+      buf.clear();
+      offset += 4;
+
+      if(fields == null || fields.contains(key)) {
+        result.put(key, new ByteArrayByteIterator(values, offset, valueLen));
+      }
+
+      offset += valueLen;
+    }
+
+    return result;
+  }
+
+  private byte[] serializeValues(final Map<String, ByteIterator> values) throws IOException {
+    try(final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+      final ByteBuffer buf = ByteBuffer.allocate(4);
+
+      for(final Map.Entry<String, ByteIterator> value : values.entrySet()) {
+        final byte[] keyBytes = value.getKey().getBytes(UTF_8);
+        final byte[] valueBytes = value.getValue().toArray();
+
+        buf.putInt(keyBytes.length);
+        baos.write(buf.array());
+        baos.write(keyBytes);
+
+        buf.clear();
+
+        buf.putInt(valueBytes.length);
+        baos.write(buf.array());
+        baos.write(valueBytes);
+
+        buf.clear();
+      }
+      return baos.toByteArray();
+    }
+  }
+
   private void createColumnFamily(final String name) throws RocksDBException {
     COLUMN_FAMILY_LOCKS.putIfAbsent(name, new ReentrantLock());
 
@@ -306,6 +411,7 @@ public class Replicator {
       l.unlock();
     }
   }
+
   private void saveColumnFamilyNames() throws IOException {
     final Path file = rocksDbDir.resolve(COLUMN_FAMILY_NAMES_FILENAME);
     try(final PrintWriter writer = new PrintWriter(Files.newBufferedWriter(file, UTF_8))) {

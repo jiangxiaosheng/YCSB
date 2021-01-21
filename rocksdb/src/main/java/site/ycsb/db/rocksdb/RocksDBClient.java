@@ -54,6 +54,7 @@ public class RocksDBClient extends DB {
   //add tcp socket for communication
   private Socket socket;
   private ObjectOutputStream out;
+  private InputStream in;
 
   @GuardedBy("RocksDBClient.class") private static Path rocksDbDir = null;
   @GuardedBy("RocksDBClient.class") private static Path optionsFile = null;
@@ -93,6 +94,8 @@ public class RocksDBClient extends DB {
       try {
         socket = new Socket(InetAddress.getByName("127.0.0.1"), 1234);
         out = new ObjectOutputStream(socket.getOutputStream());
+        in = socket.getInputStream();
+
       } catch (IOException e) {
         throw new DBException(e);
       }
@@ -215,6 +218,7 @@ public class RocksDBClient extends DB {
           rocksDbDir = null;
         }
         //close the socket when cleaning up the db
+        in.close();
         out.close();
         socket.close();
 
@@ -239,9 +243,27 @@ public class RocksDBClient extends DB {
       if(values == null) {
         return Status.NOT_FOUND;
       }
+
+      ReplicatorOp op = new ReplicatorOp(table, key, null, new String("read"));
+      Gson gson = new Gson();
+      //add line break to read entries line by line
+      String json = gson.toJson(op) + "\n";
+      out.writeObject(json);
+      System.out.println("updated read end here");
+
+      byte[] buf = new byte[512];
+      int len;
+
+      while ((len = in.read(buf)) != -1) {
+        for (int i=0; i< len; i++) {
+          System.out.print(buf[i] +" ");
+        }
+        break;
+      }
+
       deserializeValues(values, fields, result);
       return Status.OK;
-    } catch(final RocksDBException e) {
+    } catch(final IOException | RocksDBException e) {
       LOGGER.error(e.getMessage(), e);
       return Status.ERROR;
     }
