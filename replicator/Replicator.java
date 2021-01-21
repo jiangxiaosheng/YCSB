@@ -35,19 +35,26 @@ public class Replicator {
   //private static final Logger LOGGER = LoggerFactory.getLogger(Replicator.class);
 
   public void init(String role) throws DBException {
+    this.role = role;
+
     synchronized(Replicator.class) {
       if(rocksDb == null) {
         rocksDbDir = Paths.get(PROPERTY_ROCKSDB_DIR);
         //LOGGER.info("RocksDB data dir: " + rocksDbDir);
 
-        String optionsFileString = PROPERTY_ROCKSDB_OPTIONS_FILE;
+        //String optionsFileString = PROPERTY_ROCKSDB_OPTIONS_FILE;
+        String optionsFileString = null;
         if (optionsFileString != null) {
           optionsFile = Paths.get(optionsFileString);
           //LOGGER.info("RocksDB options file: " + optionsFile);
         }
 
         try {
-          rocksDb = initRocksDB();
+          if (optionsFile != null) {
+            rocksDb = initRocksDBWithOptionsFile();
+          } else {
+            rocksDb = initRocksDB();
+          }
         } catch (final IOException | RocksDBException e) {
           throw new DBException(e);
         }
@@ -85,7 +92,6 @@ public class Replicator {
     private BufferedReader in;
     private InputStream instream;
 
-
     public ClientHandler(Socket socket) {
       this.clientSock = socket;
     }
@@ -94,35 +100,29 @@ public class Replicator {
       try {
         // out = new PrintWriter(clientSock.getOutputStream(), true);
         instream = clientSock.getInputStream();
+        in = new BufferedReader(new InputStreamReader(instream));
 
-        int len;
-        byte[] data = new byte[512];
-        StringBuilder sb = new StringBuilder();
         String str;
 
-        while ((len = instream.read(data)) != -1) {
-          sb.append(new String(data, 0, len));
-        }
-        str = sb.toString();
-        if (str.length() == 0) {
-          System.out.println("end of stream");
-        } else if (str.length() < 7) {
-          System.out.println(str + " is not a valid operation");
-          sb = new StringBuilder();
-        } else {
-          str = str.substring(7);
-          System.out.println(str.length());
-          //System.out.println(str);
-          Gson gson = new Gson();
-          try {
-            ReplicatorOp op = gson.fromJson(str, ReplicatorOp.class);
-            //System.out.println(op.getKey());
-            opHandler(op);
-          } catch (Exception e) {
-            e.printStackTrace();
+        while((str = in.readLine()) != null) {
+          if (str.length() == 0) {
+            System.out.println("end of stream");
+          } else if (str.length() < 7) {
+            System.out.println(str + " is not a valid operation");
+          } else {
+            str = "{"+ str.split("\\{", 2)[1];
+            System.out.println(str);
+            Gson gson = new Gson();
+            //de-serialize json string and handle operation
+            try {
+              ReplicatorOp op = gson.fromJson(str, ReplicatorOp.class);
+              opHandler(op);
+            } catch (Exception e) {
+              e.printStackTrace();
+            }
           }
         }
-
+        in.close();
         instream.close();
         // out.close();
         clientSock.close();
@@ -133,6 +133,7 @@ public class Replicator {
   }
 
   private void opHandler(ReplicatorOp op) {
+
     String table = op.getTable();
     String key = op.getKey();
 
@@ -142,15 +143,20 @@ public class Replicator {
       }
 
       final ColumnFamilyHandle cf = COLUMN_FAMILIES.get(table).getHandle();
-      System.out.println(op.getValues().length);
-      rocksDb.put(cf, key.getBytes(UTF_8), op.getValues());
+      //System.out.println(op.getValues().length);
+      if (op.getOp().equals("insert")) {
+        rocksDb.put(cf, key.getBytes(UTF_8), op.getValues());
+      }
       //return Status.OK;
-      Map<String, ByteIterator> results = new HashMap<>();
+      /* confirmation unit
       final byte[] values = rocksDb.get(cf, key.getBytes(UTF_8));
       if(values == null) {
         System.out.println("value not writtein in db");
       }
+
       System.out.println(values);
+      */
+
       System.out.println("status: ok");
     } catch(final RocksDBException e) {
       //LOGGER.error(e.getMessage(), e);
@@ -208,7 +214,72 @@ public class Replicator {
       return db;
     }
   }
-  
+
+  /**
+   * Initializes and opens the RocksDB database.
+   *
+   * Should only be called with a {@code synchronized(Replicator.class)` block}.
+   *
+   * @return The initialized and open RocksDB instance.
+   */
+  private RocksDB initRocksDBWithOptionsFile() throws IOException, RocksDBException {
+    if(!Files.exists(rocksDbDir)) {
+      Files.createDirectories(rocksDbDir);
+    }
+
+    final DBOptions options = new DBOptions();
+    final List<ColumnFamilyDescriptor> cfDescriptors = new ArrayList<>();
+    final List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
+
+    RocksDB.loadLibrary();
+    OptionsUtil.loadOptionsFromFile(optionsFile.toAbsolutePath().toString(), Env.getDefault(), options, cfDescriptors);
+    dbOptions = options;
+
+    final RocksDB db = RocksDB.open(options, rocksDbDir.toAbsolutePath().toString(), cfDescriptors, cfHandles);
+
+    for(int i = 0; i < cfDescriptors.size(); i++) {
+      String cfName = new String(cfDescriptors.get(i).getName());
+      final ColumnFamilyHandle cfHandle = cfHandles.get(i);
+      final ColumnFamilyOptions cfOptions = cfDescriptors.get(i).getOptions();
+
+      COLUMN_FAMILIES.put(cfName, new ColumnFamily(cfHandle, cfOptions));
+    }
+
+    return db;
+  }
+
+  public void cleanup() throws DBException {
+    //super.cleanup();
+    synchronized (Replicator.class) {
+      try {
+        if (references == 1) {
+          for (final ColumnFamily cf : COLUMN_FAMILIES.values()) {
+            cf.getHandle().close();
+          }
+
+          rocksDb.close();
+          rocksDb = null;
+
+          dbOptions.close();
+          dbOptions = null;
+
+          for (final ColumnFamily cf : COLUMN_FAMILIES.values()) {
+            cf.getOptions().close();
+          }
+          saveColumnFamilyNames();
+          COLUMN_FAMILIES.clear();
+
+          rocksDbDir = null;
+        }
+
+      } catch (final IOException e) {
+        throw new DBException(e);
+      } finally {
+        references--;
+      }
+    }
+  }
+
   private void createColumnFamily(final String name) throws RocksDBException {
     COLUMN_FAMILY_LOCKS.putIfAbsent(name, new ReentrantLock());
 

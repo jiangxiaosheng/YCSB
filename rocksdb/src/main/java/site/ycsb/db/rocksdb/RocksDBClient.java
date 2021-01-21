@@ -314,17 +314,15 @@ public class RocksDBClient extends DB {
 
       final ColumnFamilyHandle cf = COLUMN_FAMILIES.get(table).getHandle();
 
-
       rocksDb.put(cf, key.getBytes(UTF_8), serializeValues(values));
-      System.out.println("size is: " + values.size());
+      //System.out.println("size is: " + values.size());
 
       ReplicatorOp op = new ReplicatorOp(table, key, serializeValues(values), new String("insert"));
       Gson gson = new Gson();
-      String json = gson.toJson(op);
-      // System.out.println(json);
+      //add line break to read entries line by line
+      String json = gson.toJson(op) + "\n";
       out.writeObject(json);
-
-
+      //TODO: might need to do some confirmation before returning status.OK
       return Status.OK;
     } catch(final RocksDBException | IOException e) {
       LOGGER.error(e.getMessage(), e);
