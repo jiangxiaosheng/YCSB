@@ -88,7 +88,7 @@ public class Replicator {
 
   private class ClientHandler extends Thread {
     private Socket clientSock;
-    private OutputStream outstream;
+    private ObjectOutputStream outstream;
     // private PrintWriter out;
     private BufferedReader in;
     private InputStream instream;
@@ -99,8 +99,7 @@ public class Replicator {
 
     public void run() {
       try {
-        outstream = clientSock.getOutputStream();
-        //out = new PrintWriter(clientSock.getOutputStream(), true);
+        outstream = new ObjectOutputStream(clientSock.getOutputStream());
         instream = clientSock.getInputStream();
         in = new BufferedReader(new InputStreamReader(instream));
 
@@ -114,18 +113,18 @@ public class Replicator {
           } else {
             //TODO: error handling
             str = "{"+ str.split("\\{", 2)[1];
-            System.out.println(str);
+            //System.out.println(str);
             Gson gson = new Gson();
             //de-serialize json string and handle operation
             try {
               ReplicatorOp op = gson.fromJson(str, ReplicatorOp.class);
-              if (op.getOp().equals("read")) {
-                final byte[] output = opHandler(op);
-                outstream.write(output);
-              } else {
-                opHandler(op);
-              }
+              Reply reply = opHandler(op);
+              //add line break to read entries line by line
+              String json = gson.toJson(reply) + "\n";
+              //System.out.println(json);
+              outstream.writeObject(json);
             } catch (Exception e) {
+              System.out.println("op: " + str);
               e.printStackTrace();
             }
           }
@@ -133,7 +132,6 @@ public class Replicator {
         in.close();
         instream.close();
         outstream.close();
-        //out.close();
         clientSock.close();
       } catch (IOException e) {
         e.printStackTrace();
@@ -141,11 +139,14 @@ public class Replicator {
     }
   }
 
-  private byte[] opHandler(ReplicatorOp op) {
+  private Reply opHandler(ReplicatorOp op) {
 
     String table = op.getTable();
     String key = op.getKey();
-    byte[] ret = new byte[0];
+    //byte[] ret = new byte[0];
+		Reply reply = new Reply();
+    reply.setOp(op.getOp());
+
     try {
       if (!COLUMN_FAMILIES.containsKey(table)) {
         createColumnFamily(table);
@@ -153,21 +154,30 @@ public class Replicator {
 
       final ColumnFamilyHandle cf = COLUMN_FAMILIES.get(table).getHandle();
       //System.out.println(op.getValues().length);
+      
+      //process different ops
       switch (op.getOp()) {
         case "insert":
           rocksDb.put(cf, key.getBytes(UTF_8), op.getValues());
+          //TODO: insert comm with two secondaries here
+          reply.setStatus(site.ycsb.Status.OK);
           break;
         case "read":
           final byte[] val = rocksDb.get(cf, key.getBytes(UTF_8));
           if(val == null) {
-            //return Status.NOT_FOUND;
-            System.out.println("status: not found");
+            reply.setStatus(site.ycsb.Status.NOT_FOUND);
+            System.out.println("read - status: not found");
           } else {
-            ret = val;
+            reply.setValues(val);
+            reply.setStatus(site.ycsb.Status.OK);
           }
           break;
-        /*TODO: need to expand the ReplicatorOp class fields
+        //TODO: need to expand the ReplicatorOp class fields
+				//implementation of scan could be delayed -> dummy impl now
         case "scan":
+          reply.setStatus(site.ycsb.Status.OK);
+          break;
+          /*
           try(final RocksIterator iterator = rocksDb.newIterator(cf)) {
             int iterations = 0;
             for (iterator.seek(startkey.getBytes(UTF_8)); iterator.isValid() && iterations < recordcount;
@@ -183,7 +193,8 @@ public class Replicator {
           final Map<String, ByteIterator> update = new HashMap<>();
           final byte[] currentValues = rocksDb.get(cf, key.getBytes(UTF_8));
           if(currentValues == null) {
-            System.out.println("status: not found");
+            reply.setStatus(site.ycsb.Status.NOT_FOUND);
+            System.out.println("update - status: not found");
             break;
           }
           deserializeValues(currentValues, null, result);
@@ -192,27 +203,20 @@ public class Replicator {
           result.putAll(update);
           //store
           rocksDb.put(cf, key.getBytes(UTF_8), serializeValues(result));
+          reply.setStatus(site.ycsb.Status.OK);
           break;
         case "delete":
           rocksDb.delete(cf, key.getBytes(UTF_8));
+          reply.setStatus(site.ycsb.Status.OK);
       }
-      //return Status.OK;
-      /* confirmation unit
-      final byte[] values = rocksDb.get(cf, key.getBytes(UTF_8));
-      if(values == null) {
-        System.out.println("value not writtein in db");
-      }
-
-      System.out.println(values);
-      */
-      System.out.println("status: ok");
+      //System.out.println("status: ok");
     } catch(final IOException | RocksDBException e) {
       //LOGGER.error(e.getMessage(), e);
-      //return Status.ERROR;
+      reply.setStatus(site.ycsb.Status.ERROR);
       System.out.println("status: error");
       e.printStackTrace();
     }
-    return ret;
+    return reply;
   }
 
   private RocksDB initRocksDB() throws IOException, RocksDBException {

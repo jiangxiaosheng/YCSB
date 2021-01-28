@@ -55,6 +55,7 @@ public class RocksDBClient extends DB {
   private Socket socket;
   private ObjectOutputStream out;
   private InputStream in;
+  private BufferedReader instream;
 
   @GuardedBy("RocksDBClient.class") private static Path rocksDbDir = null;
   @GuardedBy("RocksDBClient.class") private static Path optionsFile = null;
@@ -95,6 +96,7 @@ public class RocksDBClient extends DB {
         socket = new Socket(InetAddress.getByName("127.0.0.1"), 1234);
         out = new ObjectOutputStream(socket.getOutputStream());
         in = socket.getInputStream();
+        instream = new BufferedReader(new InputStreamReader(in));
 
       } catch (IOException e) {
         throw new DBException(e);
@@ -218,6 +220,7 @@ public class RocksDBClient extends DB {
           rocksDbDir = null;
         }
         //close the socket when cleaning up the db
+        instream.close();
         in.close();
         out.close();
         socket.close();
@@ -233,46 +236,54 @@ public class RocksDBClient extends DB {
   @Override
   public Status read(final String table, final String key, final Set<String> fields,
       final Map<String, ByteIterator> result) {
+    ReplicatorOp op = new ReplicatorOp(table, key, null, new String("read"));
+    Gson gson = new Gson();
+
     try {
-      if (!COLUMN_FAMILIES.containsKey(table)) {
-        createColumnFamily(table);
-      }
-
-      final ColumnFamilyHandle cf = COLUMN_FAMILIES.get(table).getHandle();
-      final byte[] values = rocksDb.get(cf, key.getBytes(UTF_8));
-      if(values == null) {
-        return Status.NOT_FOUND;
-      }
-
-      ReplicatorOp op = new ReplicatorOp(table, key, null, new String("read"));
-      Gson gson = new Gson();
       //add line break to read entries line by line
       String json = gson.toJson(op) + "\n";
       out.writeObject(json);
-      System.out.println("updated read end here");
+      //System.out.println("op is: " + json);
+      String str;
 
-      byte[] buf = new byte[512];
-      int len;
-
-      while ((len = in.read(buf)) != -1) {
-        for (int i=0; i< len; i++) {
-          System.out.print(buf[i] +" ");
+      while ((str = instream.readLine()) != null) {
+        if (str.length() == 0) {
+          System.out.println("end of stream");
+        } else if (str.length() < 7) {
+          System.out.println(str + " is not a valid operation");
+        } else {
+          //TODO: error handling
+          str = "{" + str.split("\\{", 2)[1];
+          //System.out.println(str);
+          //de-serialize json string and handle operation
+          Reply reply = gson.fromJson(str, Reply.class);
+          //check status code first
+          if (reply.getOp().equals("read")) {
+            deserializeValues(reply.getValues(), fields, result);
+            break;
+          }
         }
-        break;
       }
-
-      deserializeValues(values, fields, result);
-      return Status.OK;
-    } catch(final IOException | RocksDBException e) {
-      LOGGER.error(e.getMessage(), e);
+    } catch (IOException e) {
+      e.printStackTrace();
       return Status.ERROR;
     }
+    //System.out.println("key " + key + " read success");
+    return Status.OK;
   }
 
+  //dummy method
   @Override
   public Status scan(final String table, final String startkey, final int recordcount, final Set<String> fields,
         final Vector<HashMap<String, ByteIterator>> result) {
     try {
+      ReplicatorOp op = new ReplicatorOp(table, startkey, null, new String("scan"));
+      Gson gson = new Gson();
+      //add line break to read entries line by line
+      String json = gson.toJson(op) + "\n";
+      out.writeObject(json);
+
+      /*
       if (!COLUMN_FAMILIES.containsKey(table)) {
         createColumnFamily(table);
       }
@@ -288,9 +299,9 @@ public class RocksDBClient extends DB {
           iterations++;
         }
       }
-
+      */
       return Status.OK;
-    } catch(final RocksDBException e) {
+    } catch(final IOException e) {
       LOGGER.error(e.getMessage(), e);
       return Status.ERROR;
     }
@@ -301,6 +312,12 @@ public class RocksDBClient extends DB {
     //TODO(AR) consider if this would be faster with merge operator
 
     try {
+      ReplicatorOp op = new ReplicatorOp(table, key, serializeValues(values), new String("update"));
+      Gson gson = new Gson();
+      //add line break to read entries line by line
+      String json = gson.toJson(op) + "\n";
+      out.writeObject(json);
+      /*
       if (!COLUMN_FAMILIES.containsKey(table)) {
         createColumnFamily(table);
       }
@@ -318,10 +335,10 @@ public class RocksDBClient extends DB {
 
       //store
       rocksDb.put(cf, key.getBytes(UTF_8), serializeValues(result));
-
+      */
+      //System.out.println("key " + key + "update success");
       return Status.OK;
-
-    } catch(final RocksDBException | IOException e) {
+    } catch(final IOException e) {
       LOGGER.error(e.getMessage(), e);
       return Status.ERROR;
     }
@@ -330,23 +347,16 @@ public class RocksDBClient extends DB {
   @Override
   public Status insert(final String table, final String key, final Map<String, ByteIterator> values) {
     try {
-      if (!COLUMN_FAMILIES.containsKey(table)) {
-        createColumnFamily(table);
-      }
-
-      final ColumnFamilyHandle cf = COLUMN_FAMILIES.get(table).getHandle();
-
-      rocksDb.put(cf, key.getBytes(UTF_8), serializeValues(values));
-      //System.out.println("size is: " + values.size());
-
       ReplicatorOp op = new ReplicatorOp(table, key, serializeValues(values), new String("insert"));
       Gson gson = new Gson();
       //add line break to read entries line by line
       String json = gson.toJson(op) + "\n";
+      //System.out.println(json);
       out.writeObject(json);
       //TODO: might need to do some confirmation before returning status.OK
+      //System.out.println("key " + key + "insert success");
       return Status.OK;
-    } catch(final RocksDBException | IOException e) {
+    } catch(final IOException e) {
       LOGGER.error(e.getMessage(), e);
       return Status.ERROR;
     }
@@ -355,15 +365,21 @@ public class RocksDBClient extends DB {
   @Override
   public Status delete(final String table, final String key) {
     try {
+      ReplicatorOp op = new ReplicatorOp(table, key, null, new String("delete"));
+      Gson gson = new Gson();
+      //add line break to read entries line by line
+      String json = gson.toJson(op) + "\n";
+      out.writeObject(json);
+      /*
       if (!COLUMN_FAMILIES.containsKey(table)) {
         createColumnFamily(table);
       }
 
       final ColumnFamilyHandle cf = COLUMN_FAMILIES.get(table).getHandle();
       rocksDb.delete(cf, key.getBytes(UTF_8));
-
+      */
       return Status.OK;
-    } catch(final RocksDBException e) {
+    } catch(final IOException e) {
       LOGGER.error(e.getMessage(), e);
       return Status.ERROR;
     }

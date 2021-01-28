@@ -106,6 +106,11 @@ public class RocksDBClientTest {
     instance.read(MOCK_TABLE, MOCK_KEY2, MOCK_DATA.keySet(), resultParam);
 
     for (int i = 0; i < NUM_RECORDS; i++) {
+      /*
+      String reading = resultParam.get(FIELD_PREFIX + i).toString();
+      String expect = "newvalue" + i;
+      System.out.println("expecting: " + expect + ", got: " + reading );
+      */
       assertEquals("newvalue" + i, resultParam.get(FIELD_PREFIX + i).toString());
     }
   }
