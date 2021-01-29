@@ -62,6 +62,7 @@ public class RocksDBClient extends DB {
   @GuardedBy("RocksDBClient.class") private static RocksObject dbOptions = null;
   @GuardedBy("RocksDBClient.class") private static RocksDB rocksDb = null;
   @GuardedBy("RocksDBClient.class") private static int references = 0;
+  private static long timer = 0;
 
   private static final ConcurrentMap<String, ColumnFamily> COLUMN_FAMILIES = new ConcurrentHashMap<>();
   private static final ConcurrentMap<String, Lock> COLUMN_FAMILY_LOCKS = new ConcurrentHashMap<>();
@@ -69,6 +70,7 @@ public class RocksDBClient extends DB {
   @Override
   public void init() throws DBException {
     synchronized(RocksDBClient.class) {
+
       if(rocksDb == null) {
         rocksDbDir = Paths.get(getProperties().getProperty(PROPERTY_ROCKSDB_DIR));
         LOGGER.info("RocksDB data dir: " + rocksDbDir);
@@ -201,6 +203,7 @@ public class RocksDBClient extends DB {
     synchronized (RocksDBClient.class) {
       try {
         if (references == 1) {
+          System.out.println("timer: " + timer);
           for (final ColumnFamily cf : COLUMN_FAMILIES.values()) {
             cf.getHandle().close();
           }
@@ -214,6 +217,7 @@ public class RocksDBClient extends DB {
           for (final ColumnFamily cf : COLUMN_FAMILIES.values()) {
             cf.getOptions().close();
           }
+
           saveColumnFamilyNames();
           COLUMN_FAMILIES.clear();
 
@@ -236,6 +240,8 @@ public class RocksDBClient extends DB {
   @Override
   public Status read(final String table, final String key, final Set<String> fields,
       final Map<String, ByteIterator> result) {
+
+    long cur = System.nanoTime();
     ReplicatorOp op = new ReplicatorOp(table, key, null, new String("read"));
     Gson gson = new Gson();
 
@@ -243,7 +249,6 @@ public class RocksDBClient extends DB {
       //add line break to read entries line by line
       String json = gson.toJson(op) + "\n";
       out.writeObject(json);
-      //System.out.println("op is: " + json);
       String str;
 
       while ((str = instream.readLine()) != null) {
@@ -254,11 +259,11 @@ public class RocksDBClient extends DB {
         } else {
           //TODO: error handling
           str = "{" + str.split("\\{", 2)[1];
-          //System.out.println(str);
           //de-serialize json string and handle operation
           Reply reply = gson.fromJson(str, Reply.class);
           //check status code first
           if (reply.getOp().equals("read")) {
+            timer += System.nanoTime() - cur;
             deserializeValues(reply.getValues(), fields, result);
             break;
           }
@@ -268,7 +273,7 @@ public class RocksDBClient extends DB {
       e.printStackTrace();
       return Status.ERROR;
     }
-    //System.out.println("key " + key + " read success");
+
     return Status.OK;
   }
 
@@ -310,33 +315,14 @@ public class RocksDBClient extends DB {
   @Override
   public Status update(final String table, final String key, final Map<String, ByteIterator> values) {
     //TODO(AR) consider if this would be faster with merge operator
-
+    long cur = System.nanoTime();
     try {
       ReplicatorOp op = new ReplicatorOp(table, key, serializeValues(values), new String("update"));
       Gson gson = new Gson();
       //add line break to read entries line by line
       String json = gson.toJson(op) + "\n";
       out.writeObject(json);
-      /*
-      if (!COLUMN_FAMILIES.containsKey(table)) {
-        createColumnFamily(table);
-      }
-
-      final ColumnFamilyHandle cf = COLUMN_FAMILIES.get(table).getHandle();
-      final Map<String, ByteIterator> result = new HashMap<>();
-      final byte[] currentValues = rocksDb.get(cf, key.getBytes(UTF_8));
-      if(currentValues == null) {
-        return Status.NOT_FOUND;
-      }
-      deserializeValues(currentValues, null, result);
-
-      //update
-      result.putAll(values);
-
-      //store
-      rocksDb.put(cf, key.getBytes(UTF_8), serializeValues(result));
-      */
-      //System.out.println("key " + key + "update success");
+      timer += System.nanoTime() - cur;
       return Status.OK;
     } catch(final IOException e) {
       LOGGER.error(e.getMessage(), e);
@@ -346,15 +332,15 @@ public class RocksDBClient extends DB {
 
   @Override
   public Status insert(final String table, final String key, final Map<String, ByteIterator> values) {
+    long cur = System.nanoTime();
     try {
       ReplicatorOp op = new ReplicatorOp(table, key, serializeValues(values), new String("insert"));
       Gson gson = new Gson();
       //add line break to read entries line by line
       String json = gson.toJson(op) + "\n";
-      //System.out.println(json);
       out.writeObject(json);
       //TODO: might need to do some confirmation before returning status.OK
-      //System.out.println("key " + key + "insert success");
+      timer += System.nanoTime() - cur;
       return Status.OK;
     } catch(final IOException e) {
       LOGGER.error(e.getMessage(), e);
@@ -364,20 +350,14 @@ public class RocksDBClient extends DB {
 
   @Override
   public Status delete(final String table, final String key) {
+    long cur = System.nanoTime();
     try {
       ReplicatorOp op = new ReplicatorOp(table, key, null, new String("delete"));
       Gson gson = new Gson();
       //add line break to read entries line by line
       String json = gson.toJson(op) + "\n";
       out.writeObject(json);
-      /*
-      if (!COLUMN_FAMILIES.containsKey(table)) {
-        createColumnFamily(table);
-      }
-
-      final ColumnFamilyHandle cf = COLUMN_FAMILIES.get(table).getHandle();
-      rocksDb.delete(cf, key.getBytes(UTF_8));
-      */
+      timer += System.nanoTime() - cur;
       return Status.OK;
     } catch(final IOException e) {
       LOGGER.error(e.getMessage(), e);
