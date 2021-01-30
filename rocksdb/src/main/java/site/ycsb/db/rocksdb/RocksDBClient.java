@@ -57,12 +57,17 @@ public class RocksDBClient extends DB {
   private InputStream in;
   private BufferedReader instream;
 
+  //add observable
+  private Observable replyHandler;
+
+  //add timer variable
+  private static long timer = 0;
+
   @GuardedBy("RocksDBClient.class") private static Path rocksDbDir = null;
   @GuardedBy("RocksDBClient.class") private static Path optionsFile = null;
   @GuardedBy("RocksDBClient.class") private static RocksObject dbOptions = null;
   @GuardedBy("RocksDBClient.class") private static RocksDB rocksDb = null;
   @GuardedBy("RocksDBClient.class") private static int references = 0;
-  private static long timer = 0;
 
   private static final ConcurrentMap<String, ColumnFamily> COLUMN_FAMILIES = new ConcurrentHashMap<>();
   private static final ConcurrentMap<String, Lock> COLUMN_FAMILY_LOCKS = new ConcurrentHashMap<>();
@@ -70,7 +75,6 @@ public class RocksDBClient extends DB {
   @Override
   public void init() throws DBException {
     synchronized(RocksDBClient.class) {
-
       if(rocksDb == null) {
         rocksDbDir = Paths.get(getProperties().getProperty(PROPERTY_ROCKSDB_DIR));
         LOGGER.info("RocksDB data dir: " + rocksDbDir);
@@ -100,6 +104,8 @@ public class RocksDBClient extends DB {
       out = new ObjectOutputStream(socket.getOutputStream());
       in = socket.getInputStream();
       instream = new BufferedReader(new InputStreamReader(in));
+      replyHandler = new Observable();
+      replyHandler.addStream(instream);
 
     } catch (IOException e) {
       throw new DBException(e);
@@ -254,6 +260,11 @@ public class RocksDBClient extends DB {
       String json = gson.toJson(op);
       System.out.println("read: "+ json);
       out.writeObject(json);
+
+      ReplyListener listener = new ReplyListener();
+      listener.bindOp("read");
+      replyHandler.addObserver(listener);
+      replyHandler.onReply();
 
       //Reply reply = parseReply("read");
       String str = instream.readLine();
