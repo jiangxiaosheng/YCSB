@@ -93,16 +93,16 @@ public class RocksDBClient extends DB {
       }
 
       references++;
-      //init socket when initing db
-      try {
-        socket = new Socket(InetAddress.getByName("127.0.0.1"), 1234);
-        out = new ObjectOutputStream(socket.getOutputStream());
-        in = socket.getInputStream();
-        instream = new BufferedReader(new InputStreamReader(in));
+    }
+    //init socket when initing db
+    try {
+      socket = new Socket(InetAddress.getByName("127.0.0.1"), 1234);
+      out = new ObjectOutputStream(socket.getOutputStream());
+      in = socket.getInputStream();
+      instream = new BufferedReader(new InputStreamReader(in));
 
-      } catch (IOException e) {
-        throw new DBException(e);
-      }
+    } catch (IOException e) {
+      throw new DBException(e);
     }
   }
 
@@ -223,17 +223,21 @@ public class RocksDBClient extends DB {
 
           rocksDbDir = null;
         }
-        //close the socket when cleaning up the db
-        instream.close();
-        in.close();
-        out.close();
-        socket.close();
 
       } catch (final IOException e) {
         throw new DBException(e);
       } finally {
         references--;
       }
+    }
+    try {
+      //close the socket when cleaning up the db
+      instream.close();
+      in.close();
+      out.close();
+      socket.close();
+    } catch (final IOException e) {
+      e.printStackTrace();
     }
   }
 
@@ -247,34 +251,24 @@ public class RocksDBClient extends DB {
 
     try {
       //add line break to read entries line by line
-      String json = gson.toJson(op) + "\n";
+      String json = gson.toJson(op);
+      System.out.println("read: "+ json);
       out.writeObject(json);
-      String str;
 
-      while ((str = instream.readLine()) != null) {
-        if (str.length() == 0) {
-          System.out.println("end of stream");
-        } else if (str.length() < 7) {
-          System.out.println(str + " is not a valid operation");
-        } else {
-          //TODO: error handling
-          str = "{" + str.split("\\{", 2)[1];
-          //de-serialize json string and handle operation
-          Reply reply = gson.fromJson(str, Reply.class);
-          //check status code first
-          if (reply.getOp().equals("read")) {
-            timer += System.nanoTime() - cur;
-            deserializeValues(reply.getValues(), fields, result);
-            break;
-          }
-        }
-      }
+      //Reply reply = parseReply("read");
+      String str = instream.readLine();
+      str = "{" + str.split("\\{", 2)[1];
+      //de-serialize json string and handle operation
+      Reply reply = gson.fromJson(str, Reply.class);
+      System.out.println(reply.getOp() + reply.getStatus());
+      timer += System.nanoTime() - cur;
+      deserializeValues(reply.getValues(), fields, result);
+      return reply.getStatus();
     } catch (IOException e) {
       e.printStackTrace();
       return Status.ERROR;
     }
-
-    return Status.OK;
+    //return Status.OK;
   }
 
   //dummy method
@@ -322,7 +316,13 @@ public class RocksDBClient extends DB {
       //add line break to read entries line by line
       String json = gson.toJson(op) + "\n";
       out.writeObject(json);
+      //Reply reply = parseReply("update");
+      //Reply reply = parseReply("insert");
+      String str = instream.readLine();
+      System.out.println(str);
       timer += System.nanoTime() - cur;
+      //System.out.println(reply);
+      //return reply.getStatus();
       return Status.OK;
     } catch(final IOException e) {
       LOGGER.error(e.getMessage(), e);
@@ -338,11 +338,17 @@ public class RocksDBClient extends DB {
       Gson gson = new Gson();
       //add line break to read entries line by line
       String json = gson.toJson(op) + "\n";
+      System.out.println("outgoing json: " + op.getKey());
       out.writeObject(json);
       //TODO: might need to do some confirmation before returning status.OK
+      //Reply reply = parseReply("insert");
+      String str = instream.readLine();
+      System.out.println(str);
       timer += System.nanoTime() - cur;
+      //return reply.getStatus();
       return Status.OK;
     } catch(final IOException e) {
+      e.printStackTrace();
       LOGGER.error(e.getMessage(), e);
       return Status.ERROR;
     }
@@ -357,12 +363,48 @@ public class RocksDBClient extends DB {
       //add line break to read entries line by line
       String json = gson.toJson(op) + "\n";
       out.writeObject(json);
+      //Reply reply = parseReply("delete");
+      String str = instream.readLine();
+      System.out.println(str);
       timer += System.nanoTime() - cur;
+      //System.out.println(reply);
+      //return reply.getStatus();
       return Status.OK;
     } catch(final IOException e) {
       LOGGER.error(e.getMessage(), e);
       return Status.ERROR;
     }
+  }
+
+  private Reply parseReply(String op) {
+    String str;
+    Gson gson = new Gson();
+    Reply reply = new Reply();
+    try {
+      //str = instream.readLine();
+      //System.out.println(str);
+      while ((str = instream.readLine()) != null) {
+        if (str.length() == 0) {
+          System.out.println("end of stream");
+        } else if (str.length() < 7) {
+          System.out.println(str + " is not a valid operation");
+        } else {
+          //TODO: error handling
+          str = "{" + str.split("\\{", 2)[1];
+          //de-serialize json string and handle operation
+          reply = gson.fromJson(str, Reply.class);
+          //check status code first
+          if (reply.getOp().equals(op)) {
+            System.out.println("match");
+            break;
+          }
+        }
+      }
+    } catch (IOException e) {
+      LOGGER.error(e.getMessage(), e);
+      reply.setStatus(Status.ERROR);
+    }
+    return reply;
   }
 
   private void saveColumnFamilyNames() throws IOException {
