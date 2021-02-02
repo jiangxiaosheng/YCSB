@@ -44,6 +44,7 @@ public class ClientThread implements Runnable {
   private Properties props;
   private long targetOpsTickNs;
   private final Measurements measurements;
+  private CountDownLatch loopLatch;
 
   /**
    * Constructor.
@@ -71,6 +72,7 @@ public class ClientThread implements Runnable {
     measurements = Measurements.getMeasurements();
     spinSleep = Boolean.valueOf(this.props.getProperty("spin.sleep", "false"));
     this.completeLatch = completeLatch;
+    this.loopLatch = new CountDownLatch(opcount);
   }
 
   public void setThreadId(final int threadId) {
@@ -114,24 +116,15 @@ public class ClientThread implements Runnable {
       sleepUntil(System.nanoTime() + randomMinorDelay);
     }
     try {
-      int rate = 100; //50 operations started per second
-      int batch = 10;
-      int interval = 1000 * batch /rate;
+      int rate = 40; //50 operations started per second
+      int interval = 1000 /rate;
 
       if (dotransactions) {
         long startTimeNanos = System.nanoTime();
         while (((opcount == 0) || (opsdone < opcount)) && !workload.isStopRequested()) {
 
-          Thread t = new Thread(new SingleOp(workload, db, workloadstate, "transaction"));
-          t.start();
+          new Thread(new SingleOp(workload, db, workloadstate, "transaction", loopLatch)).start();
           Thread.sleep(interval);
-
-          //status array/read map
-          /*
-          if (!workload.doTransaction(db, workloadstate)) {
-            break;
-          }
-          */
 
           opsdone++;
           System.out.println("doTransaction opsdone: " + opsdone);
@@ -142,24 +135,26 @@ public class ClientThread implements Runnable {
 
         while (((opcount == 0) || (opsdone < opcount)) && !workload.isStopRequested()) {
 
-          Thread t = new Thread(new SingleOp(workload, db, workloadstate, "insert"));
-          t.start();
+          new Thread(new SingleOp(workload, db, workloadstate, "insert", loopLatch)).start();
           Thread.sleep(interval);
-          /*
-          if (!workload.doInsert(db, workloadstate)) {
-            break;
-          }
-           */
 
           opsdone++;
           System.out.println("doInsert opsdone: " + opsdone);
           throttleNanos(startTimeNanos);
         }
       }
+
     } catch (Exception e) {
       e.printStackTrace();
       e.printStackTrace(System.out);
       System.exit(0);
+    }
+
+    try {
+      //alldone = completeLatch.await(deadline - now, TimeUnit.NANOSECONDS);
+      loopLatch.await();
+    } catch (InterruptedException ie) {
+      ie.printStackTrace();
     }
 
     try {
