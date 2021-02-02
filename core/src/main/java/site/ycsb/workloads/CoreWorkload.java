@@ -619,6 +619,7 @@ public class CoreWorkload extends Workload {
     int numOfRetries = 0;
     do {
       status = db.insert(table, dbkey, values);
+      System.out.println("CoreWorkLoad status - " + status);
       if (null != status && status.isOk()) {
         break;
       }

@@ -114,17 +114,28 @@ public class ClientThread implements Runnable {
       sleepUntil(System.nanoTime() + randomMinorDelay);
     }
     try {
+      int rate = 1200; //1200 operations started per second
+      double interval = 1000/rate;
+
       if (dotransactions) {
         long startTimeNanos = System.nanoTime();
-
         while (((opcount == 0) || (opsdone < opcount)) && !workload.isStopRequested()) {
+          //start new thread thread.run()
 
+          Thread t = new Thread(new SingleOp(workload, db, workloadstate, "transaction"));
+          t.start();
+          Thread.sleep(50);
+
+          //sleep for some time
+          //status array/read map
+          /*
           if (!workload.doTransaction(db, workloadstate)) {
             break;
           }
+          */
 
           opsdone++;
-
+          System.out.println("doTransaction opsdone: " + opsdone);
           throttleNanos(startTimeNanos);
         }
       } else {
@@ -132,12 +143,17 @@ public class ClientThread implements Runnable {
 
         while (((opcount == 0) || (opsdone < opcount)) && !workload.isStopRequested()) {
 
+          Thread t = new Thread(new SingleOp(workload, db, workloadstate, "insert"));
+          t.start();
+          Thread.sleep(50);
+          /*
           if (!workload.doInsert(db, workloadstate)) {
             break;
           }
+           */
 
           opsdone++;
-
+          System.out.println("doInsert opsdone: " + opsdone);
           throttleNanos(startTimeNanos);
         }
       }

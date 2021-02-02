@@ -90,19 +90,20 @@ public class RocksDBClient extends DB {
         } catch (final IOException | RocksDBException e) {
           throw new DBException(e);
         }
+        //init socket when initing db
+        try {
+          socket = new Socket(InetAddress.getByName("127.0.0.1"), 1234);
+          out = new ObjectOutputStream(socket.getOutputStream());
+          in = socket.getInputStream();
+          instream = new BufferedReader(new InputStreamReader(in));
+
+        } catch (IOException e) {
+          throw new DBException(e);
+        }
       }
 
       references++;
-      //init socket when initing db
-      try {
-        socket = new Socket(InetAddress.getByName("127.0.0.1"), 1234);
-        out = new ObjectOutputStream(socket.getOutputStream());
-        in = socket.getInputStream();
-        instream = new BufferedReader(new InputStreamReader(in));
 
-      } catch (IOException e) {
-        throw new DBException(e);
-      }
     }
   }
 
@@ -222,12 +223,13 @@ public class RocksDBClient extends DB {
           COLUMN_FAMILIES.clear();
 
           rocksDbDir = null;
+
+          //close the socket when cleaning up the db
+          instream.close();
+          in.close();
+          out.close();
+          socket.close();
         }
-        //close the socket when cleaning up the db
-        instream.close();
-        in.close();
-        out.close();
-        socket.close();
 
       } catch (final IOException e) {
         throw new DBException(e);
@@ -341,6 +343,7 @@ public class RocksDBClient extends DB {
       out.writeObject(json);
       //TODO: might need to do some confirmation before returning status.OK
       timer += System.nanoTime() - cur;
+      System.out.println("insert: timer - " + timer + "status ok - " + Status.OK);
       return Status.OK;
     } catch(final IOException e) {
       LOGGER.error(e.getMessage(), e);
