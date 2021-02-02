@@ -35,7 +35,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.net.*;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-
 import com.google.gson.*;
 
 /**
@@ -52,9 +51,11 @@ public class RocksDBClient extends DB {
   private static final Logger LOGGER = LoggerFactory.getLogger(RocksDBClient.class);
 
   //add tcp socket for communication
+  /*
   private Socket socket;
   private ObjectOutputStream out;
   private BufferedReader in;
+   */
 
   @GuardedBy("RocksDBClient.class") private static Path rocksDbDir = null;
   @GuardedBy("RocksDBClient.class") private static Path optionsFile = null;
@@ -62,8 +63,8 @@ public class RocksDBClient extends DB {
   @GuardedBy("RocksDBClient.class") private static RocksDB rocksDb = null;
   @GuardedBy("RocksDBClient.class") private static int references = 0;
   private static long timer = 0;
-  private List<ReplyListener> listeners;
-  private Thread inParser;
+  // private List<ReplyListener> listeners;
+  // private Thread inParser;
 
   private static final ConcurrentMap<String, ColumnFamily> COLUMN_FAMILIES = new ConcurrentHashMap<>();
   private static final ConcurrentMap<String, Lock> COLUMN_FAMILY_LOCKS = new ConcurrentHashMap<>();
@@ -88,7 +89,9 @@ public class RocksDBClient extends DB {
           } else {
             rocksDb = initRocksDB();
           }
+          /*
           //TODO change this to init per thread, not per RocksDB
+          //opcount = 0;
           //init socket when initing db
           socket = new Socket(InetAddress.getByName("127.0.0.1"), 1234);
           out = new ObjectOutputStream(socket.getOutputStream());
@@ -98,6 +101,7 @@ public class RocksDBClient extends DB {
           listeners = Collections.synchronizedList(new ArrayList<>());
           inParser = new Thread(new InParser());
           inParser.start();
+           */
 
         } catch (final IOException | RocksDBException e) {
           throw new DBException(e);
@@ -206,7 +210,7 @@ public class RocksDBClient extends DB {
     synchronized (RocksDBClient.class) {
       try {
         if (references == 1) {
-          System.out.println("timer: " + timer);
+          // System.out.println("timer: " + timer);
           for (final ColumnFamily cf : COLUMN_FAMILIES.values()) {
             cf.getHandle().close();
           }
@@ -225,12 +229,13 @@ public class RocksDBClient extends DB {
           COLUMN_FAMILIES.clear();
 
           rocksDbDir = null;
-
           //close the socket when cleaning up the db
-          inParser.stop();
+          /*
+          // inParser.stop();
           in.close();
           out.close();
           socket.close();
+           */
         }
 
       } catch (final IOException e) {
@@ -244,19 +249,28 @@ public class RocksDBClient extends DB {
   @Override
   public Status read(final String table, final String key, final Set<String> fields,
       final Map<String, ByteIterator> result) {
+    Status ret = Status.ERROR;
 
-    long cur = System.nanoTime();
+    Socket socket;
+    ObjectOutputStream out;
+    BufferedReader in;
+
     ReplicatorOp op = new ReplicatorOp(table, key, null, new String("read"));
     Gson gson = new Gson();
 
     try {
+      //add tcp socket for communication
+      socket = new Socket(InetAddress.getByName("127.0.0.1"), 1234);
+      out = new ObjectOutputStream(socket.getOutputStream());
+      in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
       //add line break to read entries line by line
       String json = gson.toJson(op) + "\n";
       out.writeObject(json);
-      listeners.add(new GenericListener("read", result));
+      // listeners.add(new GenericListener("read", result));
+      ret = Status.OK;
+      String str;
 
-      /*
-      while ((str = instream.readLine()) != null) {
+      while ((str = in.readLine()) != null) {
         if (str.length() == 0) {
           System.out.println("end of stream");
         } else if (str.length() < 7) {
@@ -266,31 +280,39 @@ public class RocksDBClient extends DB {
           str = "{" + str.split("\\{", 2)[1];
           //de-serialize json string and handle operation
           Reply reply = gson.fromJson(str, Reply.class);
-          //check status code first
-          if (reply.getOp().equals("read")) {
-            timer += System.nanoTime() - cur;
-            deserializeValues(reply.getValues(), fields, result);
-            break;
-          }
+          deserializeValues(reply.getValues(), fields, result);
+          break;
         }
       }
-       */
-
+      in.close();
+      out.close();
+      socket.close();
+      ret = Status.OK;
     } catch (IOException e) {
       e.printStackTrace();
-      return Status.ERROR;
+      // ret = Status.ERROR;
+    } finally {
+      return ret;
     }
-
-    return Status.OK;
   }
 
   //dummy method
   @Override
   public Status scan(final String table, final String startkey, final int recordcount, final Set<String> fields,
         final Vector<HashMap<String, ByteIterator>> result) {
+
+    Socket socket;
+    ObjectOutputStream out;
+    BufferedReader in;
+
+    ReplicatorOp op = new ReplicatorOp(table, startkey, null, new String("scan"));
+    Gson gson = new Gson();
+    Status ret = Status.ERROR;
+
     try {
-      ReplicatorOp op = new ReplicatorOp(table, startkey, null, new String("scan"));
-      Gson gson = new Gson();
+      socket = new Socket(InetAddress.getByName("127.0.0.1"), 1234);
+      out = new ObjectOutputStream(socket.getOutputStream());
+      in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
       //add line break to read entries line by line
       String json = gson.toJson(op) + "\n";
       out.writeObject(json);
@@ -312,67 +334,165 @@ public class RocksDBClient extends DB {
         }
       }
       */
-      return Status.OK;
+      ret = Status.OK;
+      in.close();
+      out.close();
+      socket.close();
     } catch(final IOException e) {
       LOGGER.error(e.getMessage(), e);
-      return Status.ERROR;
+      // ret = Status.ERROR;
+    } finally {
+      return ret;
     }
   }
 
   @Override
   public Status update(final String table, final String key, final Map<String, ByteIterator> values) {
     //TODO(AR) consider if this would be faster with merge operator
-    long cur = System.nanoTime();
+    //long cur = System.nanoTime();
+    Socket socket;
+    ObjectOutputStream out;
+    BufferedReader in;
+
+    Gson gson = new Gson();
+    Status ret = Status.ERROR;
+
     try {
-      ReplicatorOp op = new ReplicatorOp(table, key, serializeValues(values), new String("update"));
-      Gson gson = new Gson();
+
+      socket = new Socket(InetAddress.getByName("127.0.0.1"), 1234);
+      out = new ObjectOutputStream(socket.getOutputStream());
+      in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
       //add line break to read entries line by line
+      ReplicatorOp op = new ReplicatorOp(table, key, serializeValues(values), new String("update"));
       String json = gson.toJson(op) + "\n";
       out.writeObject(json);
-      listeners.add(new GenericListener("update", null));
-      timer += System.nanoTime() - cur;
-      return Status.OK;
+      // listeners.add(new GenericListener("update", null));
+      // timer += System.nanoTime() - cur;
+      String str;
+      while ((str = in.readLine()) != null) {
+        if (str.length() == 0) {
+          System.out.println("end of stream");
+        } else if (str.length() < 7) {
+          System.out.println(str + " is not a valid operation");
+        } else {
+          //TODO: error handling
+          str = "{" + str.split("\\{", 2)[1];
+          //de-serialize json string and handle operation
+          Reply reply = gson.fromJson(str, Reply.class);
+          ret = reply.getStatus();
+          break;
+        }
+      }
+      in.close();
+      out.close();
+      socket.close();
     } catch(final IOException e) {
       LOGGER.error(e.getMessage(), e);
-      return Status.ERROR;
+      // ret = Status.ERROR;
+    } finally {
+      return ret;
     }
   }
 
   @Override
   public Status insert(final String table, final String key, final Map<String, ByteIterator> values) {
-    long cur = System.nanoTime();
+    //long cur = System.nanoTime();
+    Socket socket;
+    ObjectOutputStream out;
+    BufferedReader in;
+
+    Gson gson = new Gson();
+    Status ret = Status.ERROR;
+
     try {
-      ReplicatorOp op = new ReplicatorOp(table, key, serializeValues(values), new String("insert"));
-      Gson gson = new Gson();
+      socket = new Socket(InetAddress.getByName("127.0.0.1"), 1234);
+      out = new ObjectOutputStream(socket.getOutputStream());
+      in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
       //add line break to read entries line by line
+      ReplicatorOp op = new ReplicatorOp(table, key, serializeValues(values), new String("insert"));
       String json = gson.toJson(op) + "\n";
       out.writeObject(json);
-      listeners.add(new GenericListener("insert", null));
+      // listeners.add(new GenericListener("insert", null));
       //TODO: might need to do some confirmation before returning status.OK
-      timer += System.nanoTime() - cur;
-      //System.out.println("insert: timer - " + timer + "status ok - " + Status.OK);
-      return Status.OK;
+      // timer += System.nanoTime() - cur;
+      String str;
+      while ((str = in.readLine()) != null) {
+        if (str.length() == 0) {
+          System.out.println("end of stream");
+        } else if (str.length() < 7) {
+          System.out.println(str + " is not a valid operation");
+        } else {
+          //TODO: error handling
+          str = "{" + str.split("\\{", 2)[1];
+          //de-serialize json string and handle operation
+          Reply reply = gson.fromJson(str, Reply.class);
+          ret = reply.getStatus();
+          break;
+        }
+      }
+      in.close();
+      out.close();
+      socket.close();
     } catch(final IOException e) {
       LOGGER.error(e.getMessage(), e);
-      return Status.ERROR;
+      // ret = Status.ERROR;
+    } finally {
+      return ret;
     }
   }
+  /*
+  private int hashCode(Status status) {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((status.getDescription() == null) ? 0 : status.Description().hashCode());
+    result = prime * result + ((status.getName() == null) ? 0 : name.hashCode());
+    return result;
+  }
+   */
 
   @Override
   public Status delete(final String table, final String key) {
-    long cur = System.nanoTime();
+    //long cur = System.nanoTime();
+    Socket socket;
+    ObjectOutputStream out;
+    BufferedReader in;
+
+    ReplicatorOp op = new ReplicatorOp(table, key, null, new String("delete"));
+    Gson gson = new Gson();
+    Status ret = Status.ERROR;
+
     try {
-      ReplicatorOp op = new ReplicatorOp(table, key, null, new String("delete"));
-      Gson gson = new Gson();
+      socket = new Socket(InetAddress.getByName("127.0.0.1"), 1234);
+      out = new ObjectOutputStream(socket.getOutputStream());
+      in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
       //add line break to read entries line by line
       String json = gson.toJson(op) + "\n";
       out.writeObject(json);
-      listeners.add(new GenericListener("delete", null));
-      timer += System.nanoTime() - cur;
-      return Status.OK;
+      // listeners.add(new GenericListener("delete", null));
+      // timer += System.nanoTime() - cur;
+      String str;
+      while ((str = in.readLine()) != null) {
+        if (str.length() == 0) {
+          System.out.println("end of stream");
+        } else if (str.length() < 7) {
+          System.out.println(str + " is not a valid operation");
+        } else {
+          //TODO: error handling
+          str = "{" + str.split("\\{", 2)[1];
+          //de-serialize json string and handle operation
+          Reply reply = gson.fromJson(str, Reply.class);
+          ret = reply.getStatus();
+          break;
+        }
+      }
+      in.close();
+      out.close();
+      socket.close();
     } catch(final IOException e) {
       LOGGER.error(e.getMessage(), e);
-      return Status.ERROR;
+      ret = Status.ERROR;
+    } finally {
+      return ret;
     }
   }
 
@@ -519,7 +639,7 @@ public class RocksDBClient extends DB {
     }
   }
 
-
+  /*
   private class InParser implements Runnable {
 
     private volatile boolean dead = false;
@@ -563,8 +683,9 @@ public class RocksDBClient extends DB {
   private class GenericListener implements ReplyListener {
     private Map<String, ByteIterator> result;
     private String op;
+    private Status fill;
 
-    public GenericListener(String op, final Map<String, ByteIterator> result) {
+    public GenericListener(String op, final Map<String, ByteIterator> result, ) {
       this.op = op;
       this.result = result;
     }
@@ -594,9 +715,10 @@ public class RocksDBClient extends DB {
         }
       }
 
-       */
+
     }
 
   }
+  */
 
 }

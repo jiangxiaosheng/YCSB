@@ -619,13 +619,14 @@ public class CoreWorkload extends Workload {
     int numOfRetries = 0;
     do {
       status = db.insert(table, dbkey, values);
-      System.out.println("CoreWorkLoad status - " + status);
+      //System.out.println("CoreWorkLoad status - " + status.isOk());
       if (null != status && status.isOk()) {
         break;
       }
       // Retry if configured. Without retrying, the load process will fail
       // even if one single insertion fails. User can optionally configure
       // an insertion retry limit (default is 0) to enable retry.
+      // System.out.println("CoreWorkLoad status - " + status);
       if (++numOfRetries <= insertionRetryLimit) {
         System.err.println("Retrying insertion, retry count: " + numOfRetries);
         try {

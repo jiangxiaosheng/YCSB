@@ -116,8 +116,9 @@ public class ClientThread implements Runnable {
       sleepUntil(System.nanoTime() + randomMinorDelay);
     }
     try {
-      int rate = 40; //50 operations started per second
-      int interval = 1000 /rate;
+      int rate = 500; //# of operations started per second
+      int batch = 1;
+      int interval = 1000 * batch /rate;
 
       if (dotransactions) {
         long startTimeNanos = System.nanoTime();
@@ -127,7 +128,7 @@ public class ClientThread implements Runnable {
           Thread.sleep(interval);
 
           opsdone++;
-          System.out.println("doTransaction opsdone: " + opsdone);
+          // System.out.println("doTransaction opsdone: " + opsdone);
           throttleNanos(startTimeNanos);
         }
       } else {
@@ -139,7 +140,7 @@ public class ClientThread implements Runnable {
           Thread.sleep(interval);
 
           opsdone++;
-          System.out.println("doInsert opsdone: " + opsdone);
+          // System.out.println("doInsert opsdone: " + opsdone);
           throttleNanos(startTimeNanos);
         }
       }
