@@ -54,8 +54,7 @@ public class RocksDBClient extends DB {
   //add tcp socket for communication
   private Socket socket;
   private ObjectOutputStream out;
-  private InputStream in;
-  private BufferedReader instream;
+  private BufferedReader in;
 
   @GuardedBy("RocksDBClient.class") private static Path rocksDbDir = null;
   @GuardedBy("RocksDBClient.class") private static Path optionsFile = null;
@@ -63,6 +62,8 @@ public class RocksDBClient extends DB {
   @GuardedBy("RocksDBClient.class") private static RocksDB rocksDb = null;
   @GuardedBy("RocksDBClient.class") private static int references = 0;
   private static long timer = 0;
+  private List<ReplyListener> listeners;
+  private Thread inParser;
 
   private static final ConcurrentMap<String, ColumnFamily> COLUMN_FAMILIES = new ConcurrentHashMap<>();
   private static final ConcurrentMap<String, Lock> COLUMN_FAMILY_LOCKS = new ConcurrentHashMap<>();
@@ -87,17 +88,18 @@ public class RocksDBClient extends DB {
           } else {
             rocksDb = initRocksDB();
           }
-        } catch (final IOException | RocksDBException e) {
-          throw new DBException(e);
-        }
-        //init socket when initing db
-        try {
+          //TODO change this to init per thread, not per RocksDB
+          //init socket when initing db
           socket = new Socket(InetAddress.getByName("127.0.0.1"), 1234);
           out = new ObjectOutputStream(socket.getOutputStream());
-          in = socket.getInputStream();
-          instream = new BufferedReader(new InputStreamReader(in));
+          in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-        } catch (IOException e) {
+          //init listeners and start monitoring inputstream
+          listeners = Collections.synchronizedList(new ArrayList<>());
+          inParser = new Thread(new InParser());
+          inParser.start();
+
+        } catch (final IOException | RocksDBException e) {
           throw new DBException(e);
         }
       }
@@ -225,7 +227,7 @@ public class RocksDBClient extends DB {
           rocksDbDir = null;
 
           //close the socket when cleaning up the db
-          instream.close();
+          inParser.stop();
           in.close();
           out.close();
           socket.close();
@@ -251,8 +253,9 @@ public class RocksDBClient extends DB {
       //add line break to read entries line by line
       String json = gson.toJson(op) + "\n";
       out.writeObject(json);
-      String str;
+      listeners.add(new GenericListener("read", result));
 
+      /*
       while ((str = instream.readLine()) != null) {
         if (str.length() == 0) {
           System.out.println("end of stream");
@@ -271,6 +274,8 @@ public class RocksDBClient extends DB {
           }
         }
       }
+       */
+
     } catch (IOException e) {
       e.printStackTrace();
       return Status.ERROR;
@@ -324,6 +329,7 @@ public class RocksDBClient extends DB {
       //add line break to read entries line by line
       String json = gson.toJson(op) + "\n";
       out.writeObject(json);
+      listeners.add(new GenericListener("update", null));
       timer += System.nanoTime() - cur;
       return Status.OK;
     } catch(final IOException e) {
@@ -341,9 +347,10 @@ public class RocksDBClient extends DB {
       //add line break to read entries line by line
       String json = gson.toJson(op) + "\n";
       out.writeObject(json);
+      listeners.add(new GenericListener("insert", null));
       //TODO: might need to do some confirmation before returning status.OK
       timer += System.nanoTime() - cur;
-      System.out.println("insert: timer - " + timer + "status ok - " + Status.OK);
+      //System.out.println("insert: timer - " + timer + "status ok - " + Status.OK);
       return Status.OK;
     } catch(final IOException e) {
       LOGGER.error(e.getMessage(), e);
@@ -360,6 +367,7 @@ public class RocksDBClient extends DB {
       //add line break to read entries line by line
       String json = gson.toJson(op) + "\n";
       out.writeObject(json);
+      listeners.add(new GenericListener("delete", null));
       timer += System.nanoTime() - cur;
       return Status.OK;
     } catch(final IOException e) {
@@ -510,4 +518,85 @@ public class RocksDBClient extends DB {
       return options;
     }
   }
+
+
+  private class InParser implements Runnable {
+
+    private volatile boolean dead = false;
+
+    @Override
+    public void run() {
+      String str;
+      Gson gson = new Gson();
+      try {
+        while(!dead) {
+          while ((str = in.readLine()) != null) {
+            if (str.length() == 0) {
+              System.out.println("end of stream");
+            } else if (str.length() < 7) {
+              System.out.println(str + " is not a valid operation");
+            } else {
+              //TODO: error handling
+              str = "{" + str.split("\\{", 2)[1];
+              System.out.println("str is " + str);
+              //de-serialize json string and handle operation
+              Reply reply = gson.fromJson(str, Reply.class);
+              synchronized (listeners) {
+                for(ReplyListener l: listeners) {
+                  l.onEvent(reply);
+                  System.out.println("listener spoted");
+                }
+              }
+            }
+          }
+        }
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+
+    public void stop() {
+      dead = true;
+    }
+  }
+
+  private class GenericListener implements ReplyListener {
+    private Map<String, ByteIterator> result;
+    private String op;
+
+    public GenericListener(String op, final Map<String, ByteIterator> result) {
+      this.op = op;
+      this.result = result;
+    }
+
+    @Override
+    public void onEvent(Reply reply) {
+      System.out.println(op + " listener heard " + reply.getOp());
+      //matching type of operation and listener
+      /*
+      if (reply.getOp().equals(op)) {
+        switch (op){
+          case "read":
+            System.out.println("read");
+            break;
+          default:
+            System.out.println();
+            break;
+          case "read":
+            System.out.println("read");
+            break;
+          case "read":
+            System.out.println("read");
+            break;
+          case "read":
+            System.out.println("read");
+            break;
+        }
+      }
+
+       */
+    }
+
+  }
+
 }
