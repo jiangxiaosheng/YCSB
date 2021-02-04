@@ -116,32 +116,31 @@ public class ClientThread implements Runnable {
       sleepUntil(System.nanoTime() + randomMinorDelay);
     }
     try {
-      int rate = 500; //# of operations started per second
-      int batch = 1;
+      int rate = 1000; //# of operations started per second
+      int batch = 20;
       int interval = 1000 * batch /rate;
 
       if (dotransactions) {
         long startTimeNanos = System.nanoTime();
         while (((opcount == 0) || (opsdone < opcount)) && !workload.isStopRequested()) {
-
-          new Thread(new SingleOp(workload, db, workloadstate, "transaction", loopLatch)).start();
+          for(int i = 0; i<batch; i++) {
+            new Thread(new SingleOp(workload, db, workloadstate, "transaction", loopLatch)).start();
+            opsdone++;
+            throttleNanos(startTimeNanos);
+          }
           Thread.sleep(interval);
-
-          opsdone++;
           // System.out.println("doTransaction opsdone: " + opsdone);
-          throttleNanos(startTimeNanos);
         }
       } else {
         long startTimeNanos = System.nanoTime();
 
         while (((opcount == 0) || (opsdone < opcount)) && !workload.isStopRequested()) {
-
-          new Thread(new SingleOp(workload, db, workloadstate, "insert", loopLatch)).start();
+          for(int i = 0; i<batch; i++) {
+            new Thread(new SingleOp(workload, db, workloadstate, "insert", loopLatch)).start();
+            opsdone++;
+            throttleNanos(startTimeNanos);
+          }
           Thread.sleep(interval);
-
-          opsdone++;
-          // System.out.println("doInsert opsdone: " + opsdone);
-          throttleNanos(startTimeNanos);
         }
       }
 
