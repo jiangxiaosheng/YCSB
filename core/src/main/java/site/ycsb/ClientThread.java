@@ -22,6 +22,8 @@ import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * A thread for executing transactions or data inserts to the database.
@@ -115,47 +117,61 @@ public class ClientThread implements Runnable {
       long randomMinorDelay = ThreadLocalRandom.current().nextInt((int) targetOpsTickNs);
       sleepUntil(System.nanoTime() + randomMinorDelay);
     }
+
+    long t1 = System.nanoTime();
+    ExecutorService executor = Executors.newFixedThreadPool(50);
+
     try {
-      int rate = 1000; //# of operations started per second
-      int batch = 20;
-      int interval = 1000 * batch /rate;
+      int rate = 2000; //# of operations started per second
+      int batch = 60;
+      int interval = 500 * batch /rate;
 
       if (dotransactions) {
         long startTimeNanos = System.nanoTime();
         while (((opcount == 0) || (opsdone < opcount)) && !workload.isStopRequested()) {
           for(int i = 0; i<batch; i++) {
-            new Thread(new SingleOp(workload, db, workloadstate, "transaction", loopLatch)).start();
-            opsdone++;
-            throttleNanos(startTimeNanos);
+            executor.execute(new SingleOp(workload, db, workloadstate, "transaction", loopLatch));
           }
-          Thread.sleep(interval);
-          // System.out.println("doTransaction opsdone: " + opsdone);
+          opsdone += batch;
+          if (opsdone < opcount) {
+            // System.out.println("SLEEP at: " + (System.nanoTime() - t1));
+            Thread.sleep(interval);
+          }
+            // System.out.println("doTransaction opsdone: " + opsdone);
         }
       } else {
         long startTimeNanos = System.nanoTime();
 
         while (((opcount == 0) || (opsdone < opcount)) && !workload.isStopRequested()) {
           for(int i = 0; i<batch; i++) {
-            new Thread(new SingleOp(workload, db, workloadstate, "insert", loopLatch)).start();
-            opsdone++;
-            throttleNanos(startTimeNanos);
+            executor.execute(new SingleOp(workload, db, workloadstate, "insert", loopLatch));
+            //throttleNanos(startTimeNanos);
           }
-          Thread.sleep(interval);
+          opsdone += batch;
+          if (opsdone < opcount) {
+            //System.out.println("SLEEP at: " + (System.nanoTime() - t1));
+            Thread.sleep(interval);
+          }
         }
       }
-
     } catch (Exception e) {
       e.printStackTrace();
       e.printStackTrace(System.out);
       System.exit(0);
     }
 
+    long t2 = System.nanoTime();
+    System.out.println("dur of thread creation: " + (t2 - t1));
+
     try {
       //alldone = completeLatch.await(deadline - now, TimeUnit.NANOSECONDS);
       loopLatch.await();
+      executor.shutdown();
     } catch (InterruptedException ie) {
       ie.printStackTrace();
     }
+
+    System.out.println("dur of wait thread: " + (System.nanoTime() - t2));
 
     try {
       measurements.setIntendedStartTimeNs(0);

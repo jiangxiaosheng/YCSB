@@ -8,6 +8,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.net.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.gson.*;
@@ -18,6 +21,7 @@ public class Replicator {
 
   private ServerSocket servSock;
   private String role;
+  private ExecutorService executor;
 
   @GuardedBy("Replicator.class") private static RocksDB rocksDb = null;
   @GuardedBy("Replicator.class") private static int references = 0;
@@ -36,6 +40,7 @@ public class Replicator {
 
   public void init(String role) throws DBException {
     this.role = role;
+    this.executor = Executors.newFixedThreadPool(1000);
 
     synchronized(Replicator.class) {
       if(rocksDb == null) {
@@ -72,11 +77,20 @@ public class Replicator {
       e.printStackTrace();
     }
     //handle requests
-    while (true)
-      new ClientHandler(servSock.accept()).start();
+    while (true) {
+      this.executor.execute(new ClientHandler(servSock.accept()));
+    }
   }
 
   public void stop() {
+    executor.shutdown();
+    try {
+        if (!executor.awaitTermination(800, TimeUnit.MILLISECONDS)) {
+            executor.shutdownNow();
+        } 
+    } catch (InterruptedException e) {
+        executor.shutdownNow();
+    }
     //close the socket
     try {
       servSock.close();
@@ -86,7 +100,7 @@ public class Replicator {
     //cleanup the db
   }
 
-  private class ClientHandler extends Thread {
+  private class ClientHandler implements Runnable {
     private Socket clientSock;
     private ObjectOutputStream outstream;
     // private PrintWriter out;
@@ -118,6 +132,7 @@ public class Replicator {
             //de-serialize json string and handle operation
             try {
               ReplicatorOp op = gson.fromJson(str, ReplicatorOp.class);
+              // System.out.println("op received: " + op.getOp());
               Reply reply = opHandler(op);
               //add line break to read entries line by line
               String json = gson.toJson(reply) + "\n";
