@@ -119,12 +119,16 @@ public class ClientThread implements Runnable {
     }
 
     long t1 = System.nanoTime();
-    ExecutorService executor = Executors.newFixedThreadPool(50);
+    ExecutorService executor = Executors.newFixedThreadPool(1000);
+
+    long tk = 0;
+    long tkk;
+    //System.out.println("target op per ms: " + targetOpsPerMs);
 
     try {
-      int rate = 2000; //# of operations started per second
-      int batch = 60;
-      int interval = 500 * batch /rate;
+      int rate = 1000; //# of operations started per second
+      int batch = 50;
+      int interval = 1000 * batch /rate;
 
       if (dotransactions) {
         long startTimeNanos = System.nanoTime();
@@ -134,8 +138,9 @@ public class ClientThread implements Runnable {
           }
           opsdone += batch;
           if (opsdone < opcount) {
-            // System.out.println("SLEEP at: " + (System.nanoTime() - t1));
+            tkk = System.nanoTime();
             Thread.sleep(interval);
+            tk += System.nanoTime() - tkk;
           }
             // System.out.println("doTransaction opsdone: " + opsdone);
         }
@@ -149,8 +154,9 @@ public class ClientThread implements Runnable {
           }
           opsdone += batch;
           if (opsdone < opcount) {
-            //System.out.println("SLEEP at: " + (System.nanoTime() - t1));
+            tkk = System.nanoTime();
             Thread.sleep(interval);
+            tk += System.nanoTime() - tkk;
           }
         }
       }
@@ -162,6 +168,7 @@ public class ClientThread implements Runnable {
 
     long t2 = System.nanoTime();
     System.out.println("dur of thread creation: " + (t2 - t1));
+    System.out.println("dur of sleep: " + tk);
 
     try {
       //alldone = completeLatch.await(deadline - now, TimeUnit.NANOSECONDS);

@@ -40,7 +40,8 @@ public class Replicator {
 
   public void init(String role) throws DBException {
     this.role = role;
-    this.executor = Executors.newFixedThreadPool(1000);
+    this.executor = Executors.newCachedThreadPool();
+    //this.executor = Executors.newFixedThreadPool(1000);
 
     synchronized(Replicator.class) {
       if(rocksDb == null) {
@@ -72,7 +73,7 @@ public class Replicator {
   public void start(int port) throws IOException {
     //start the server socket
     try {
-      servSock = new ServerSocket(port);
+      servSock = new ServerSocket(port, 1000);
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -105,7 +106,6 @@ public class Replicator {
     private ObjectOutputStream outstream;
     // private PrintWriter out;
     private BufferedReader in;
-    private InputStream instream;
 
     public ClientHandler(Socket socket) {
       this.clientSock = socket;
@@ -114,12 +114,10 @@ public class Replicator {
     public void run() {
       try {
         outstream = new ObjectOutputStream(clientSock.getOutputStream());
-        instream = clientSock.getInputStream();
-        in = new BufferedReader(new InputStreamReader(instream));
-
+        in = new BufferedReader(new InputStreamReader(clientSock.getInputStream()));
         String str;
-
         while((str = in.readLine()) != null) {
+          //System.out.println("str: " + str);
           if (str.length() == 0) {
             System.out.println("end of stream");
           } else if (str.length() < 7) {
@@ -139,13 +137,13 @@ public class Replicator {
               //System.out.println(json);
               outstream.writeObject(json);
             } catch (Exception e) {
-              System.out.println("op: " + str);
+              System.out.println("seg: " + str);
               e.printStackTrace();
             }
           }
         }
         in.close();
-        instream.close();
+        // instream.close();
         outstream.close();
         clientSock.close();
       } catch (IOException e) {
@@ -223,6 +221,8 @@ public class Replicator {
         case "delete":
           rocksDb.delete(cf, key.getBytes(UTF_8));
           reply.setStatus(site.ycsb.Status.OK);
+        default:
+          break;
       }
       //System.out.println("status: ok");
     } catch(final IOException | RocksDBException e) {
