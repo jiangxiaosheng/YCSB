@@ -119,14 +119,14 @@ public class ClientThread implements Runnable {
     }
 
     long t1 = System.nanoTime();
-    ExecutorService executor = Executors.newFixedThreadPool(1000);
+    ExecutorService executor = Executors.newFixedThreadPool(1500);
 
     long tk = 0;
     long tkk;
     //System.out.println("target op per ms: " + targetOpsPerMs);
 
     try {
-      int rate = 1000; //# of operations started per second
+      int rate = 2000; //# of operations started per second
       int batch = 50;
       int interval = 1000 * batch /rate;
 
