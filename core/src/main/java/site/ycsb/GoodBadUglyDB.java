@@ -27,6 +27,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.io.ObjectOutputStream;
+import java.io.BufferedReader;
 
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 
@@ -145,6 +147,12 @@ public class GoodBadUglyDB extends DB {
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     delay();
     return Status.OK;
+  }
+
+  @Override
+  public Status insert(String table, String key, Map<String, ByteIterator> values,
+                                     ObjectOutputStream out, BufferedReader in) {
+    return Status.NOT_IMPLEMENTED;
   }
 
   /**

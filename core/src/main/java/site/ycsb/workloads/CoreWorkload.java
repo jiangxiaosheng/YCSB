@@ -22,8 +22,9 @@ import site.ycsb.generator.*;
 import site.ycsb.generator.UniformLongGenerator;
 import site.ycsb.measurements.Measurements;
 
-import java.io.IOException;
+// import java.io.IOException;
 import java.util.*;
+import java.io.*;
 
 /**
  * The core benchmark scenario. Represents a set of clients doing simple CRUD operations. The
@@ -648,6 +649,48 @@ public class CoreWorkload extends Workload {
     return null != status && status.isOk();
   }
 
+  @Override
+  public boolean doInsert(DB db, Object threadstate, ObjectOutputStream out, BufferedReader in) {
+
+    int keynum = keysequence.nextValue().intValue();
+    String dbkey = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
+    HashMap<String, ByteIterator> values = buildValues(dbkey);
+
+    Status status;
+    int numOfRetries = 0;
+    do {
+      status = db.insert(table, dbkey, values, out, in);
+      //System.out.println("CoreWorkLoad status - " + status.isOk());
+      if (null != status && status.isOk()) {
+        break;
+      }
+      // Retry if configured. Without retrying, the load process will fail
+      // even if one single insertion fails. User can optionally configure
+      // an insertion retry limit (default is 0) to enable retry.
+      // System.out.println("CoreWorkLoad status - " + status);
+      if (++numOfRetries <= insertionRetryLimit) {
+        System.err.println("Retrying insertion, retry count: " + numOfRetries);
+        try {
+          // Sleep for a random number between [0.8, 1.2)*insertionRetryInterval.
+          int sleepTime = (int) (1000 * insertionRetryInterval * (0.8 + 0.4 * Math.random()));
+          Thread.sleep(sleepTime);
+        } catch (InterruptedException e) {
+          break;
+        }
+
+      } else {
+        System.err.println("Error inserting, not retrying any more. number of attempts: " + numOfRetries +
+            "Insertion Retry Limit: " + insertionRetryLimit);
+        break;
+
+      }
+    } while (true);
+
+    return null != status && status.isOk();
+
+  }
+
+
   /**
    * Do one transaction operation. Because it will be called concurrently from multiple client
    * threads, this function must be thread safe. However, avoid synchronized, or the threads will block waiting
@@ -679,6 +722,11 @@ public class CoreWorkload extends Workload {
     }
 
     return true;
+  }
+
+  @Override
+  public boolean doTransaction(DB db, Object threadstate, ObjectOutputStream out, BufferedReader in) {
+    return false;
   }
 
   /**

@@ -27,6 +27,8 @@ import java.util.TreeMap;
 import java.util.Vector;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.io.BufferedReader;
+import java.io.ObjectOutputStream;
 
 import site.ycsb.ByteIterator;
 import site.ycsb.Client;
@@ -707,6 +709,16 @@ public class TimeSeriesWorkload extends Workload {
   }
 
   @Override
+  public boolean doInsert(DB db, Object threadstate, ObjectOutputStream out, BufferedReader in) {
+    return false;
+  }
+  
+  @Override
+  public boolean doTransaction(DB db, Object threadstate, ObjectOutputStream out, BufferedReader in) {
+    return false;
+  }
+
+  @Override
   public boolean doTransaction(DB db, Object threadstate) {
     if (threadstate == null) {
       throw new IllegalStateException("Missing thread state.");
@@ -732,6 +744,8 @@ public class TimeSeriesWorkload extends Workload {
     }
     return true;
   }
+
+
 
   protected void doTransactionRead(final DB db, Object threadstate) {
     final ThreadState state = (ThreadState) threadstate;

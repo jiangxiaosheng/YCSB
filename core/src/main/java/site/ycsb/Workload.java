@@ -19,7 +19,7 @@ package site.ycsb;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Properties;
-
+import java.io.*;
 
 /**
  * One experiment scenario. One object of this type will
@@ -92,6 +92,8 @@ public abstract class Workload {
    */
   public abstract boolean doInsert(DB db, Object threadstate);
 
+  public abstract boolean doInsert(DB db, Object threadstate, ObjectOutputStream out, BufferedReader in);
+
   /**
    * Do one transaction operation. Because it will be called concurrently from multiple client threads, this
    * function must be thread safe. However, avoid synchronized, or the threads will block waiting for each
@@ -104,6 +106,7 @@ public abstract class Workload {
    * traces from a file, return true when there are more to do, false when you are done.
    */
   public abstract boolean doTransaction(DB db, Object threadstate);
+  public abstract boolean doTransaction(DB db, Object threadstate, ObjectOutputStream out, BufferedReader in);
 
   /**
    * Allows scheduling a request to stop the workload.

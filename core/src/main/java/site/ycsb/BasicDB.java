@@ -23,6 +23,8 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
+import java.io.BufferedReader;
+import java.io.ObjectOutputStream;
 
 /**
  * Basic DB that just prints out the requested operations, instead of doing them against a database.
@@ -256,6 +258,12 @@ public class BasicDB extends DB {
     }
     
     return Status.OK;
+  }
+
+  @Override
+  public Status insert(String table, String key, Map<String, ByteIterator> values,
+                                     ObjectOutputStream out, BufferedReader in) {
+    return Status.NOT_IMPLEMENTED;
   }
 
 

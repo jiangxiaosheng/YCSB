@@ -25,6 +25,8 @@ import org.apache.htrace.core.Tracer;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.io.ObjectOutputStream;
+import java.io.BufferedReader;
 
 /**
  * Wrapper around a "real" DB that measures latencies and counts return codes.
@@ -225,6 +227,20 @@ public class DBWrapper extends DB {
       long ist = measurements.getIntendedStartTimeNs();
       long st = System.nanoTime();
       Status res = db.insert(table, key, values);
+      long en = System.nanoTime();
+      measure("INSERT", res, ist, st, en);
+      measurements.reportStatus("INSERT", res);
+      return res;
+    }
+  }
+
+  @Override
+  public Status insert(String table, String key, Map<String, ByteIterator> values,
+                                     ObjectOutputStream out, BufferedReader in) {
+    try (final TraceScope span = tracer.newScope(scopeStringInsert)) {
+      long ist = measurements.getIntendedStartTimeNs();
+      long st = System.nanoTime();
+      Status res = db.insert(table, key, values, out, in);
       long en = System.nanoTime();
       measure("INSERT", res, ist, st, en);
       measurements.reportStatus("INSERT", res);

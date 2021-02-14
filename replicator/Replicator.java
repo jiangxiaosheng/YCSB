@@ -104,7 +104,6 @@ public class Replicator {
   private class ClientHandler implements Runnable {
     private Socket clientSock;
     private ObjectOutputStream outstream;
-    // private PrintWriter out;
     private BufferedReader in;
 
     public ClientHandler(Socket socket) {

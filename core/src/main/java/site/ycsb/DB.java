@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
+import java.io.ObjectOutputStream;
+import java.io.BufferedReader;
 
 /**
  * A layer for accessing a database to be benchmarked. Each thread in the client
@@ -123,6 +125,9 @@ public abstract class DB {
    * @return The result of the operation.
    */
   public abstract Status insert(String table, String key, Map<String, ByteIterator> values);
+
+  public abstract Status insert(String table, String key, Map<String, ByteIterator> values,
+                                     ObjectOutputStream out, BufferedReader in);
 
   /**
    * Delete a record from the database.

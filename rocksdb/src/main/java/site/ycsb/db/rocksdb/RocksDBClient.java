@@ -440,15 +440,38 @@ public class RocksDBClient extends DB {
       return ret;
     }
   }
-  /*
-  private int hashCode(Status status) {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((status.getDescription() == null) ? 0 : status.Description().hashCode());
-    result = prime * result + ((status.getName() == null) ? 0 : name.hashCode());
-    return result;
+  @Override
+  public Status insert(final String table, final String key, final Map<String, ByteIterator> values, 
+                        ObjectOutputStream out, BufferedReader in) {
+
+    Gson gson = new Gson();
+    Status ret = Status.ERROR;
+    
+    try {
+      //add line break to read entries line by line
+      ReplicatorOp op = new ReplicatorOp(table, key, serializeValues(values), new String("insert"));
+      String json = gson.toJson(op) + "\n";
+      out.writeObject(json);
+      String str;
+      while ((str = in.readLine()) != null) {
+        if (str.length() == 0) {
+          System.out.println("end of stream");
+        } else if (str.length() < 7) {
+          System.out.println(str + " is not a valid operation");
+        } else {
+          str = "{" + str.split("\\{", 2)[1];
+          //de-serialize json string and handle operation
+          Reply reply = gson.fromJson(str, Reply.class);
+          ret = reply.getStatus();
+          break;
+        }
+      }
+    } catch(final IOException e) {
+      LOGGER.error(e.getMessage(), e);
+    } finally {
+      return ret;
+    }
   }
-   */
 
   @Override
   public Status delete(final String table, final String key) {

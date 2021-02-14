@@ -127,16 +127,14 @@ public class ClientThread implements Runnable {
     //System.out.println("target op per ms: " + targetOpsPerMs);
 
     try {
-      int rate = 10000; //# of operations started per second
-      int batch = 200;
+      int rate = 1000; //# of operations started per second
+      int batch = 50;
       int interval = 1000 * batch /rate;
 
       if (dotransactions) {
         long startTimeNanos = System.nanoTime();
         while (((opcount == 0) || (opsdone < opcount)) && !workload.isStopRequested()) {
-          for(int i = 0; i<batch; i++) {
-            executor.execute(new SingleOp(workload, db, workloadstate, "transaction", loopLatch));
-          }
+          executor.execute(new BatchOp(workload, db, batch, workloadstate, "transaction", loopLatch));
           opsdone += batch;
           if (opsdone < opcount) {
             tkk = System.nanoTime();
@@ -149,10 +147,7 @@ public class ClientThread implements Runnable {
         long startTimeNanos = System.nanoTime();
 
         while (((opcount == 0) || (opsdone < opcount)) && !workload.isStopRequested()) {
-          for(int i = 0; i<batch; i++) {
-            executor.execute(new SingleOp(workload, db, workloadstate, "insert", loopLatch));
-            //throttleNanos(startTimeNanos);
-          }
+          executor.execute(new BatchOp(workload, db, batch, workloadstate, "insert", loopLatch));
           opsdone += batch;
           if (opsdone < opcount) {
             tkk = System.nanoTime();
@@ -172,7 +167,6 @@ public class ClientThread implements Runnable {
     System.out.println("dur of sleep: " + tk);
 
     try {
-      //alldone = completeLatch.await(deadline - now, TimeUnit.NANOSECONDS);
       loopLatch.await();
       executor.shutdown();
     } catch (InterruptedException ie) {
@@ -183,13 +177,16 @@ public class ClientThread implements Runnable {
 
     try {
       measurements.setIntendedStartTimeNs(0);
+      System.out.println("ckpt 1");
       db.cleanup();
+      System.out.println("ckpt 2");
     } catch (DBException e) {
       e.printStackTrace();
       e.printStackTrace(System.out);
     } finally {
       completeLatch.countDown();
     }
+    System.out.println("leaving here");
   }
 
   private static void sleepUntil(long deadline) {
