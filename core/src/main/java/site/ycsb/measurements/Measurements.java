@@ -163,10 +163,13 @@ public class Measurements {
   };
 
   public void setIntendedStartTimeNs(long time) {
+    System.out.println("measurementInterval: " + measurementInterval);
     if (measurementInterval == 0) {
       return;
     }
+
     tlIntendedStartTime.get().time = time;
+    System.out.println("leaving setIntededStartTimeNs");
   }
 
   public long getIntendedStartTimeNs() {

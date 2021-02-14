@@ -24,6 +24,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A thread for executing transactions or data inserts to the database.
@@ -74,7 +75,6 @@ public class ClientThread implements Runnable {
     measurements = Measurements.getMeasurements();
     spinSleep = Boolean.valueOf(this.props.getProperty("spin.sleep", "false"));
     this.completeLatch = completeLatch;
-    this.loopLatch = new CountDownLatch(opcount);
   }
 
   public void setThreadId(final int threadId) {
@@ -131,6 +131,8 @@ public class ClientThread implements Runnable {
       int batch = 50;
       int interval = 1000 * batch /rate;
 
+      this.loopLatch = new CountDownLatch(rate/batch);
+
       if (dotransactions) {
         long startTimeNanos = System.nanoTime();
         while (((opcount == 0) || (opsdone < opcount)) && !workload.isStopRequested()) {
@@ -169,24 +171,25 @@ public class ClientThread implements Runnable {
     try {
       loopLatch.await();
       executor.shutdown();
+      if (!executor.awaitTermination(800, TimeUnit.MILLISECONDS)) {
+        executor.shutdownNow();
+      } 
     } catch (InterruptedException ie) {
       ie.printStackTrace();
+      executor.shutdownNow();
     }
 
     System.out.println("dur of wait thread: " + (System.nanoTime() - t2));
 
     try {
       measurements.setIntendedStartTimeNs(0);
-      System.out.println("ckpt 1");
       db.cleanup();
-      System.out.println("ckpt 2");
     } catch (DBException e) {
       e.printStackTrace();
       e.printStackTrace(System.out);
     } finally {
       completeLatch.countDown();
     }
-    System.out.println("leaving here");
   }
 
   private static void sleepUntil(long deadline) {

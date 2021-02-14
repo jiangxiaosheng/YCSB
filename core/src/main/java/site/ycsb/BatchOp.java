@@ -51,6 +51,7 @@ class BatchOp implements Runnable {
       in.close();
       out.close();
       socket.close();
+
     } catch (IOException e) {
       e.printStackTrace();
     }
