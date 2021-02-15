@@ -130,6 +130,7 @@ public class ClientThread implements Runnable {
       int rate = 1000; //# of operations started per second
       int batch = 50;
       int interval = 1000 * batch /rate;
+      long intervalns = 1000000000 * batch / rate;
 
       this.loopLatch = new CountDownLatch(rate/batch);
 
@@ -140,7 +141,8 @@ public class ClientThread implements Runnable {
           opsdone += batch;
           if (opsdone < opcount) {
             tkk = System.nanoTime();
-            Thread.sleep(interval);
+            // Thread.sleep(interval);
+            sleepUntil(tkk + intervalns);
             tk += System.nanoTime() - tkk;
           }
             // System.out.println("doTransaction opsdone: " + opsdone);
@@ -153,7 +155,8 @@ public class ClientThread implements Runnable {
           opsdone += batch;
           if (opsdone < opcount) {
             tkk = System.nanoTime();
-            Thread.sleep(interval);
+            // Thread.sleep(interval);
+            sleepUntil(tkk + intervalns);
             tk += System.nanoTime() - tkk;
           }
         }
