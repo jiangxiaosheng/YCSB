@@ -41,14 +41,12 @@ class BatchOp implements Runnable {
 
       if (doTransaction) {
         for(int i = 0; i < opcount; i++) {
-          status = workload.doTransaction(db, workloadstate);
+          status = workload.doTransaction(db, workloadstate, out, in);
         }
       } else {
-        //long tk = System.nanoTime();
         for(int i = 0; i < opcount; i++) {
           status = workload.doInsert(db, workloadstate, out, in);
         }
-        //System.out.println("interval: "+ (System.nanoTime() -tk));
       }
 
       in.close();

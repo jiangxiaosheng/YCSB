@@ -148,6 +148,20 @@ public class DBWrapper extends DB {
     }
   }
 
+  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result,
+                    ObjectOutputStream out, BufferedReader in) {
+
+    try (final TraceScope span = tracer.newScope(scopeStringRead)) {
+      long ist = measurements.getIntendedStartTimeNs();
+      long st = System.nanoTime();
+      Status res = db.read(table, key, fields, result, out, in);
+      long en = System.nanoTime();
+      measure("READ", res, ist, st, en);
+      measurements.reportStatus("READ", res);
+      return res;
+    }
+  }
+
   /**
    * Perform a range scan for a set of records in the database.
    * Each field/value pair from the result will be stored in a HashMap.
@@ -171,6 +185,20 @@ public class DBWrapper extends DB {
       return res;
     }
   }
+
+  public Status scan(String table, String startkey, int recordcount, Set<String> fields,
+            Vector<HashMap<String, ByteIterator>> result, ObjectOutputStream out, BufferedReader in) {
+    try (final TraceScope span = tracer.newScope(scopeStringScan)) {
+      long ist = measurements.getIntendedStartTimeNs();
+      long st = System.nanoTime();
+      Status res = db.scan(table, startkey, recordcount, fields, result, out, in);
+      long en = System.nanoTime();
+      measure("SCAN", res, ist, st, en);
+      measurements.reportStatus("SCAN", res);
+      return res;
+    }
+  }
+
 
   private void measure(String op, Status result, long intendedStartTimeNanos,
                        long startTimeNanos, long endTimeNanos) {
@@ -211,6 +239,20 @@ public class DBWrapper extends DB {
     }
   }
 
+  public Status update(String table, String key, Map<String, ByteIterator> values,
+                      ObjectOutputStream out, BufferedReader in) {
+    try (final TraceScope span = tracer.newScope(scopeStringUpdate)) {
+      long ist = measurements.getIntendedStartTimeNs();
+      long st = System.nanoTime();
+      Status res = db.update(table, key, values, out, in);
+      long en = System.nanoTime();
+      measure("UPDATE", res, ist, st, en);
+      measurements.reportStatus("UPDATE", res);
+      return res;
+    }
+  }
+
+
   /**
    * Insert a record in the database. Any field/value pairs in the specified
    * values HashMap will be written into the record with the specified
@@ -234,7 +276,7 @@ public class DBWrapper extends DB {
     }
   }
 
-  @Override
+
   public Status insert(String table, String key, Map<String, ByteIterator> values,
                                      ObjectOutputStream out, BufferedReader in) {
     try (final TraceScope span = tracer.newScope(scopeStringInsert)) {
@@ -260,6 +302,18 @@ public class DBWrapper extends DB {
       long ist = measurements.getIntendedStartTimeNs();
       long st = System.nanoTime();
       Status res = db.delete(table, key);
+      long en = System.nanoTime();
+      measure("DELETE", res, ist, st, en);
+      measurements.reportStatus("DELETE", res);
+      return res;
+    }
+  }
+
+  public Status delete(String table, String key, ObjectOutputStream out, BufferedReader in) {
+    try (final TraceScope span = tracer.newScope(scopeStringDelete)) {
+      long ist = measurements.getIntendedStartTimeNs();
+      long st = System.nanoTime();
+      Status res = db.delete(table, key, out, in);
       long en = System.nanoTime();
       measure("DELETE", res, ist, st, en);
       measurements.reportStatus("DELETE", res);

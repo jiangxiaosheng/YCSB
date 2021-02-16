@@ -22,9 +22,10 @@ import site.ycsb.generator.*;
 import site.ycsb.generator.UniformLongGenerator;
 import site.ycsb.measurements.Measurements;
 
-// import java.io.IOException;
 import java.util.*;
-import java.io.*;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.BufferedReader;
 
 /**
  * The core benchmark scenario. Represents a set of clients doing simple CRUD operations. The
@@ -660,7 +661,6 @@ public class CoreWorkload extends Workload {
     int numOfRetries = 0;
     do {
       status = db.insert(table, dbkey, values, out, in);
-      //System.out.println("CoreWorkLoad status - " + status.isOk());
       if (null != status && status.isOk()) {
         break;
       }
@@ -726,7 +726,31 @@ public class CoreWorkload extends Workload {
 
   @Override
   public boolean doTransaction(DB db, Object threadstate, ObjectOutputStream out, BufferedReader in) {
-    return false;
+
+    String operation = operationchooser.nextString();
+    if(operation == null) {
+      return false;
+    }
+
+    switch (operation) {
+    case "READ":
+      doTransactionRead(db, out, in);
+      break;
+    case "UPDATE":
+      doTransactionUpdate(db, out, in);
+      break;
+    case "INSERT":
+      doTransactionInsert(db, out, in);
+      break;
+    case "SCAN":
+      doTransactionScan(db, out, in);
+      break;
+    default:
+      doTransactionReadModifyWrite(db, out, in);
+    }
+
+    return true;
+
   }
 
   /**
@@ -796,6 +820,34 @@ public class CoreWorkload extends Workload {
     }
   }
 
+  public void doTransactionRead(DB db, ObjectOutputStream out, BufferedReader in) {
+    // choose a random key
+    long keynum = nextKeynum();
+
+    String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
+
+    HashSet<String> fields = null;
+
+    if (!readallfields) {
+      // read a random field
+      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
+
+      fields = new HashSet<String>();
+      fields.add(fieldname);
+    } else if (dataintegrity || readallfieldsbyname) {
+      // pass the full field list if dataintegrity is on for verification
+      fields = new HashSet<String>(fieldnames);
+    }
+
+    HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
+    db.read(table, keyname, fields, cells, out, in);
+
+    if (dataintegrity) {
+      verifyRow(keyname, cells);
+    }
+  }
+
+
   public void doTransactionReadModifyWrite(DB db) {
     // choose a random key
     long keynum = nextKeynum();
@@ -843,6 +895,55 @@ public class CoreWorkload extends Workload {
     measurements.measureIntended("READ-MODIFY-WRITE", (int) ((en - ist) / 1000));
   }
 
+
+  public void doTransactionReadModifyWrite(DB db, ObjectOutputStream out, BufferedReader in) {
+    // choose a random key
+    long keynum = nextKeynum();
+
+    String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
+
+    HashSet<String> fields = null;
+
+    if (!readallfields) {
+      // read a random field
+      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
+
+      fields = new HashSet<String>();
+      fields.add(fieldname);
+    }
+
+    HashMap<String, ByteIterator> values;
+
+    if (writeallfields) {
+      // new data for all the fields
+      values = buildValues(keyname);
+    } else {
+      // update a random field
+      values = buildSingleValue(keyname);
+    }
+
+    // do the transaction
+
+    HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
+
+
+    long ist = measurements.getIntendedStartTimeNs();
+    long st = System.nanoTime();
+    db.read(table, keyname, fields, cells, out, in);
+
+    db.update(table, keyname, values, out, in);
+
+    long en = System.nanoTime();
+
+    if (dataintegrity) {
+      verifyRow(keyname, cells);
+    }
+
+    measurements.measure("READ-MODIFY-WRITE", (int) ((en - st) / 1000));
+    measurements.measureIntended("READ-MODIFY-WRITE", (int) ((en - ist) / 1000));
+  }
+
+
   public void doTransactionScan(DB db) {
     // choose a random key
     long keynum = nextKeynum();
@@ -865,6 +966,28 @@ public class CoreWorkload extends Workload {
     db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
   }
 
+  public void doTransactionScan(DB db, ObjectOutputStream out, BufferedReader in) {
+    // choose a random key
+    long keynum = nextKeynum();
+
+    String startkeyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
+
+    // choose a random scan length
+    int len = scanlength.nextValue().intValue();
+
+    HashSet<String> fields = null;
+
+    if (!readallfields) {
+      // read a random field
+      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
+
+      fields = new HashSet<String>();
+      fields.add(fieldname);
+    }
+
+    db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>(), out, in);
+  }
+
   public void doTransactionUpdate(DB db) {
     // choose a random key
     long keynum = nextKeynum();
@@ -884,6 +1007,26 @@ public class CoreWorkload extends Workload {
     db.update(table, keyname, values);
   }
 
+  public void doTransactionUpdate(DB db, ObjectOutputStream out, BufferedReader in) {
+    // choose a random key
+    long keynum = nextKeynum();
+
+    String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
+
+    HashMap<String, ByteIterator> values;
+
+    if (writeallfields) {
+      // new data for all the fields
+      values = buildValues(keyname);
+    } else {
+      // update a random field
+      values = buildSingleValue(keyname);
+    }
+
+    db.update(table, keyname, values, out, in);
+  }
+
+
   public void doTransactionInsert(DB db) {
     // choose the next key
     long keynum = transactioninsertkeysequence.nextValue();
@@ -893,6 +1036,20 @@ public class CoreWorkload extends Workload {
 
       HashMap<String, ByteIterator> values = buildValues(dbkey);
       db.insert(table, dbkey, values);
+    } finally {
+      transactioninsertkeysequence.acknowledge(keynum);
+    }
+  }
+
+  public void doTransactionInsert(DB db, ObjectOutputStream out, BufferedReader in) {
+    // choose the next key
+    long keynum = transactioninsertkeysequence.nextValue();
+
+    try {
+      String dbkey = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
+
+      HashMap<String, ByteIterator> values = buildValues(dbkey);
+      db.insert(table, dbkey, values, out, in);
     } finally {
       transactioninsertkeysequence.acknowledge(keynum);
     }

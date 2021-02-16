@@ -22,8 +22,8 @@ import site.ycsb.workloads.TimeSeriesWorkload;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.io.ObjectOutputStream;
-import java.io.BufferedReader;
+// import java.io.ObjectOutputStream;
+// import java.io.BufferedReader;
 
 /**
  * Abstract class to adapt the default ycsb DB interface to Timeseries databases.
@@ -232,11 +232,6 @@ public abstract class TimeseriesDB extends DB {
     }
   }
 
-  @Override
-  public Status insert(String table, String key, Map<String, ByteIterator> values,
-                                     ObjectOutputStream out, BufferedReader in) {
-    return Status.NOT_IMPLEMENTED;
-  }
 
   /**
    * Insert a record into the database. Any tags/tagvalue pairs in the specified tagmap and the given value will be

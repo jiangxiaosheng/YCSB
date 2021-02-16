@@ -149,12 +149,6 @@ public class GoodBadUglyDB extends DB {
     return Status.OK;
   }
 
-  @Override
-  public Status insert(String table, String key, Map<String, ByteIterator> values,
-                                     ObjectOutputStream out, BufferedReader in) {
-    return Status.NOT_IMPLEMENTED;
-  }
-
   /**
    * Delete a record from the database.
    *
@@ -166,4 +160,32 @@ public class GoodBadUglyDB extends DB {
     delay();
     return Status.OK;
   }
+
+
+  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result,
+                              ObjectOutputStream out, BufferedReader in) {
+    return Status.NOT_IMPLEMENTED;
+  }
+
+
+  public Status scan(String table, String startkey, int recordcount, Set<String> fields,
+             Vector<HashMap<String, ByteIterator>> result, ObjectOutputStream out, BufferedReader in) {
+    return Status.NOT_IMPLEMENTED;
+  }
+
+  public Status update(String table, String key, Map<String, ByteIterator> values,
+                                ObjectOutputStream out, BufferedReader in) {
+    return Status.NOT_IMPLEMENTED;
+  }
+
+
+  public Status insert(String table, String key, Map<String, ByteIterator> values,
+                                     ObjectOutputStream out, BufferedReader in) {
+    return Status.NOT_IMPLEMENTED;
+  }
+
+  public Status delete(String table, String key, ObjectOutputStream out, BufferedReader in) {
+    return Status.NOT_IMPLEMENTED;
+  }
+
 }

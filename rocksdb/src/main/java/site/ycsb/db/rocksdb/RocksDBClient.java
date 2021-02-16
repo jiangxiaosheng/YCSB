@@ -50,21 +50,12 @@ public class RocksDBClient extends DB {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RocksDBClient.class);
 
-  //add tcp socket for communication
-  /*
-  private Socket socket;
-  private ObjectOutputStream out;
-  private BufferedReader in;
-   */
-
   @GuardedBy("RocksDBClient.class") private static Path rocksDbDir = null;
   @GuardedBy("RocksDBClient.class") private static Path optionsFile = null;
   @GuardedBy("RocksDBClient.class") private static RocksObject dbOptions = null;
   @GuardedBy("RocksDBClient.class") private static RocksDB rocksDb = null;
   @GuardedBy("RocksDBClient.class") private static int references = 0;
   private static long timer = 0;
-  // private List<ReplyListener> listeners;
-  // private Thread inParser;
 
   private static final ConcurrentMap<String, ColumnFamily> COLUMN_FAMILIES = new ConcurrentHashMap<>();
   private static final ConcurrentMap<String, Lock> COLUMN_FAMILY_LOCKS = new ConcurrentHashMap<>();
@@ -89,19 +80,6 @@ public class RocksDBClient extends DB {
           } else {
             rocksDb = initRocksDB();
           }
-          /*
-          //TODO change this to init per thread, not per RocksDB
-          //opcount = 0;
-          //init socket when initing db
-          socket = new Socket(InetAddress.getByName("127.0.0.1"), 1234);
-          out = new ObjectOutputStream(socket.getOutputStream());
-          in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-
-          //init listeners and start monitoring inputstream
-          listeners = Collections.synchronizedList(new ArrayList<>());
-          inParser = new Thread(new InParser());
-          inParser.start();
-           */
 
         } catch (final IOException | RocksDBException e) {
           throw new DBException(e);
@@ -229,13 +207,6 @@ public class RocksDBClient extends DB {
           COLUMN_FAMILIES.clear();
 
           rocksDbDir = null;
-          //close the socket when cleaning up the db
-          /*
-          // inParser.stop();
-          in.close();
-          out.close();
-          socket.close();
-           */
         }
 
       } catch (final IOException e) {
@@ -245,6 +216,7 @@ public class RocksDBClient extends DB {
       }
     }
   }
+
 
   @Override
   public Status read(final String table, final String key, final Set<String> fields,
@@ -295,6 +267,21 @@ public class RocksDBClient extends DB {
       return ret;
     }
   }
+
+
+  public Status read(final String table, final String key, final Set<String> fields,
+      final Map<String, ByteIterator> result, ObjectOutputStream out, BufferedReader in) {
+
+    Status ret = Status.ERROR;
+    ReplicatorOp op = new ReplicatorOp(table, key, null, new String("read"));
+    Reply reply = iostream(op, out, in);
+    if (reply.getStatus().isOk()) {
+      deserializeValues(reply.getValues(), fields, result);
+    }
+    return ret;
+  }
+
+
 
   //dummy method
   @Override
@@ -347,6 +334,19 @@ public class RocksDBClient extends DB {
   }
 
   @Override
+  public Status scan(final String table, final String startkey, final int recordcount, final Set<String> fields,
+        final Vector<HashMap<String, ByteIterator>> result, ObjectOutputStream out, BufferedReader in) {
+
+    Status ret = Status.ERROR;
+    ReplicatorOp op = new ReplicatorOp(table, startkey, null, new String("scan"));
+    //Reply reply = iostream(op, out, in);
+    //ret = reply.getStatus();
+    return ret;
+
+  }
+
+
+  @Override
   public Status update(final String table, final String key, final Map<String, ByteIterator> values) {
     //TODO(AR) consider if this would be faster with merge operator
     //long cur = System.nanoTime();
@@ -395,6 +395,24 @@ public class RocksDBClient extends DB {
   }
 
   @Override
+  public Status update(final String table, final String key, final Map<String, ByteIterator> values,
+                        ObjectOutputStream out, BufferedReader in) {
+
+    Status ret = Status.ERROR;
+    try {
+      ReplicatorOp op = new ReplicatorOp(table, key, serializeValues(values), new String("update"));
+      Reply reply = iostream(op, out, in);
+      ret = reply.getStatus();
+    } catch (IOException e) {
+      e.printStackTrace();
+    } finally {
+      return ret;
+    }
+  }
+
+
+
+  @Override
   public Status insert(final String table, final String key, final Map<String, ByteIterator> values) {
     //long cur = System.nanoTime();
     Socket socket;
@@ -440,34 +458,17 @@ public class RocksDBClient extends DB {
       return ret;
     }
   }
+
   @Override
   public Status insert(final String table, final String key, final Map<String, ByteIterator> values, 
                         ObjectOutputStream out, BufferedReader in) {
-
-    Gson gson = new Gson();
     Status ret = Status.ERROR;
-    
     try {
-      //add line break to read entries line by line
       ReplicatorOp op = new ReplicatorOp(table, key, serializeValues(values), new String("insert"));
-      String json = gson.toJson(op) + "\n";
-      out.writeObject(json);
-      String str;
-      while ((str = in.readLine()) != null) {
-        if (str.length() == 0) {
-          System.out.println("end of stream");
-        } else if (str.length() < 7) {
-          System.out.println(str + " is not a valid operation");
-        } else {
-          str = "{" + str.split("\\{", 2)[1];
-          //de-serialize json string and handle operation
-          Reply reply = gson.fromJson(str, Reply.class);
-          ret = reply.getStatus();
-          break;
-        }
-      }
-    } catch(final IOException e) {
-      LOGGER.error(e.getMessage(), e);
+      Reply reply = iostream(op, out, in);
+      ret = reply.getStatus();
+    } catch (IOException e) {
+      e.printStackTrace();
     } finally {
       return ret;
     }
@@ -518,6 +519,49 @@ public class RocksDBClient extends DB {
       return ret;
     }
   }
+
+
+  @Override
+  public Status delete(final String table, final String key, ObjectOutputStream out, BufferedReader in) {
+    Status ret = Status.ERROR;
+    ReplicatorOp op = new ReplicatorOp(table, key, null, new String("delete"));
+    Reply reply = iostream(op, out, in);
+    ret = reply.getStatus();
+    return ret;
+
+  }
+
+
+  private Reply iostream(ReplicatorOp op, ObjectOutputStream out, BufferedReader in) {
+
+    Gson gson = new Gson();
+    Status ret = Status.ERROR;
+    Reply reply = new Reply(null, null, Status.ERROR);
+    
+    try {
+      String json = gson.toJson(op) + "\n";
+      out.writeObject(json);
+      String str;
+      while ((str = in.readLine()) != null) {
+        if (str.length() == 0) {
+          System.out.println("end of stream");
+        } else if (str.length() < 7) {
+          System.out.println(str + " is not a valid operation");
+        } else {
+          str = "{" + str.split("\\{", 2)[1];
+          //de-serialize json string and handle operation
+          reply = gson.fromJson(str, Reply.class);
+          break;
+        }
+      }
+    } catch(final IOException e) {
+      LOGGER.error(e.getMessage(), e);
+    } finally {
+      return reply;
+    }
+
+  }
+
 
   private void saveColumnFamilyNames() throws IOException {
     final Path file = rocksDbDir.resolve(COLUMN_FAMILY_NAMES_FILENAME);

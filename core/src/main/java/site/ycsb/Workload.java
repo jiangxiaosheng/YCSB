@@ -19,7 +19,8 @@ package site.ycsb;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Properties;
-import java.io.*;
+import java.io.ObjectOutputStream;
+import java.io.BufferedReader;
 
 /**
  * One experiment scenario. One object of this type will
