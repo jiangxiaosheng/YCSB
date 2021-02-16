@@ -127,46 +127,49 @@ public class ClientThread implements Runnable {
     //System.out.println("target op per ms: " + targetOpsPerMs);
 
     try {
-      /*
+      
       int rate = 36000; //# of operations started per second
-      int batch = 50;
-      int interval = 1000 * batch /rate;
-      long intervalns = 700000000/rate*batch;
+      int batch = 500;
+      int divide = 10;
+      int minibatch = batch/divide;
+      long intervalns = 500000000/rate*batch;
       System.out.println("intervalns: " + intervalns);
       System.out.println("expected sleep sum " + intervalns * (opcount/batch-1));
-      this.loopLatch = new CountDownLatch(rate/batch);
-      */
+      this.loopLatch = new CountDownLatch(rate/minibatch);
+      /*
       this.loopLatch = new CountDownLatch(nthreads);
       int batch = opcount / nthreads;
-      
-
+      System.out.println("batch size: "+batch);
+      */
       if (dotransactions) {
         long startTimeNanos = System.nanoTime();
         while (((opcount == 0) || (opsdone < opcount)) && !workload.isStopRequested()) {
           executor.execute(new BatchOp(workload, db, batch, workloadstate, "transaction", loopLatch));
           opsdone += batch;
-          /*
+          
           if (opsdone < opcount) {
             tkk = System.nanoTime();
             // Thread.sleep(interval);
             sleepUntil(tkk + intervalns);
             tk += System.nanoTime() - tkk;
-          }*/
+          }
             // System.out.println("doTransaction opsdone: " + opsdone);
         }
       } else {
         long startTimeNanos = System.nanoTime();
 
         while (((opcount == 0) || (opsdone < opcount)) && !workload.isStopRequested()) {
-          executor.execute(new BatchOp(workload, db, batch, workloadstate, "insert", loopLatch));
+          for (int i = 0; i < divide; i++) {
+            executor.execute(new BatchOp(workload, db, minibatch, workloadstate, "insert", loopLatch));
+          }
           opsdone += batch;
-          /*
+         
           if (opsdone < opcount) {
             tkk = System.nanoTime();
             // Thread.sleep(interval);
             sleepUntil(tkk + intervalns);
             tk += System.nanoTime() - tkk;
-          }*/
+          }
         }
       }
     } catch (Exception e) {

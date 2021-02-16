@@ -27,14 +27,14 @@ class BatchOp implements Runnable {
     this.workloadstate = workloadstate;
     this.doTransaction = op.equals("transaction") ? true : false;
     this.loopLatch = loopLatch;
-    this.dest = "127.0.0.1";
+    this.dest = "128.110.153.109";
     this.port = 1234;
 
   }
 
   public void run() {
     try {
-      long tk = System.nanoTime();
+      // long tk = System.nanoTime();
       Socket socket = new Socket(InetAddress.getByName(dest), port);
       ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
       BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream())); 
@@ -54,7 +54,7 @@ class BatchOp implements Runnable {
       in.close();
       out.close();
       socket.close();
-      System.out.println("time is " + (System.nanoTime() - tk));
+      // System.out.println("time is " + (System.nanoTime() - tk));
 
     } catch (IOException e) {
       e.printStackTrace();
