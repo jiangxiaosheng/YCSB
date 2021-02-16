@@ -34,6 +34,7 @@ class BatchOp implements Runnable {
 
   public void run() {
     try {
+      long tk = System.nanoTime();
       Socket socket = new Socket(InetAddress.getByName(dest), port);
       ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
       BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream())); 
@@ -53,6 +54,7 @@ class BatchOp implements Runnable {
       in.close();
       out.close();
       socket.close();
+      System.out.println("time is " + (System.nanoTime() - tk));
 
     } catch (IOException e) {
       e.printStackTrace();

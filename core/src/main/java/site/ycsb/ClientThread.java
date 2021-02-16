@@ -117,35 +117,41 @@ public class ClientThread implements Runnable {
       long randomMinorDelay = ThreadLocalRandom.current().nextInt((int) targetOpsTickNs);
       sleepUntil(System.nanoTime() + randomMinorDelay);
     }
-
+    int nthreads = 2000;
     long t1 = System.nanoTime();
-    // ExecutorService executor = Executors.newFixedThreadPool(2000);
-    ExecutorService executor = Executors.newCachedThreadPool();
+    ExecutorService executor = Executors.newFixedThreadPool(nthreads);
+    // ExecutorService executor = Executors.newCachedThreadPool();
 
     long tk = 0;
     long tkk;
     //System.out.println("target op per ms: " + targetOpsPerMs);
 
     try {
+      /*
       int rate = 36000; //# of operations started per second
-      int batch = 30;
+      int batch = 50;
       int interval = 1000 * batch /rate;
-      long intervalns = 500000000/rate*batch;
+      long intervalns = 700000000/rate*batch;
       System.out.println("intervalns: " + intervalns);
       System.out.println("expected sleep sum " + intervalns * (opcount/batch-1));
       this.loopLatch = new CountDownLatch(rate/batch);
+      */
+      this.loopLatch = new CountDownLatch(nthreads);
+      int batch = opcount / nthreads;
+      
 
       if (dotransactions) {
         long startTimeNanos = System.nanoTime();
         while (((opcount == 0) || (opsdone < opcount)) && !workload.isStopRequested()) {
           executor.execute(new BatchOp(workload, db, batch, workloadstate, "transaction", loopLatch));
           opsdone += batch;
+          /*
           if (opsdone < opcount) {
             tkk = System.nanoTime();
             // Thread.sleep(interval);
             sleepUntil(tkk + intervalns);
             tk += System.nanoTime() - tkk;
-          }
+          }*/
             // System.out.println("doTransaction opsdone: " + opsdone);
         }
       } else {
@@ -154,12 +160,13 @@ public class ClientThread implements Runnable {
         while (((opcount == 0) || (opsdone < opcount)) && !workload.isStopRequested()) {
           executor.execute(new BatchOp(workload, db, batch, workloadstate, "insert", loopLatch));
           opsdone += batch;
+          /*
           if (opsdone < opcount) {
             tkk = System.nanoTime();
             // Thread.sleep(interval);
             sleepUntil(tkk + intervalns);
             tk += System.nanoTime() - tkk;
-          }
+          }*/
         }
       }
     } catch (Exception e) {
