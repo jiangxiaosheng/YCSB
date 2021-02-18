@@ -275,6 +275,7 @@ public class RocksDBClient extends DB {
     Status ret = Status.ERROR;
     ReplicatorOp op = new ReplicatorOp(table, key, null, new String("read"));
     Reply reply = iostream(op, out, in);
+    ret = reply.getStatus();
     if (reply.getStatus().isOk()) {
       deserializeValues(reply.getValues(), fields, result);
     }

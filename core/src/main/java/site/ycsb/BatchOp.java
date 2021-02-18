@@ -27,7 +27,7 @@ class BatchOp implements Runnable {
     this.workloadstate = workloadstate;
     this.doTransaction = op.equals("transaction") ? true : false;
     this.loopLatch = loopLatch;
-    this.dest = "128.110.153.109";
+    this.dest = "128.110.153.178";
     this.port = 1234;
 
   }
@@ -57,6 +57,7 @@ class BatchOp implements Runnable {
     } catch (IOException e) {
       e.printStackTrace();
     }
+    // System.out.println("return batch");
     loopLatch.countDown();
   }
 }
