@@ -24,7 +24,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+// import java.util.concurrent.TimeUnit;
 
 /**
  * A thread for executing transactions or data inserts to the database.
@@ -117,7 +117,7 @@ public class ClientThread implements Runnable {
       long randomMinorDelay = ThreadLocalRandom.current().nextInt((int) targetOpsTickNs);
       sleepUntil(System.nanoTime() + randomMinorDelay);
     }
-    int nthreads = 1500;
+    int nthreads = 2000;
     long t1 = System.nanoTime();
 
     MyFactory myFact = new MyFactory();
@@ -131,8 +131,8 @@ public class ClientThread implements Runnable {
     try {
       
       int rate = 50000; //# of operations started per second
-      int batch = 500;
-      int divide = 10;
+      int batch =40;
+      int divide = 1;
       int minibatch = batch/divide;
       long intervalns = 500000000/rate*batch;
       System.out.println("intervalns: " + intervalns + " opcount: " + opcount + " minibatch: " + minibatch);
@@ -184,10 +184,11 @@ public class ClientThread implements Runnable {
 
     try {
       loopLatch.await();
-      executor.shutdown();
+      /*
+       * executor.shutdown();
       if (!executor.awaitTermination(800, TimeUnit.MILLISECONDS)) {
-        executor.shutdownNow();
-      } 
+       executor.shutdownNow();
+      } */
     } catch (InterruptedException ie) {
       ie.printStackTrace();
       executor.shutdownNow();
