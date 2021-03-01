@@ -120,7 +120,7 @@ public class ClientThread implements Runnable {
     int nthreads = 2000;
     long t1 = System.nanoTime();
 
-    MyFactory myFact = new MyFactory();
+    MyFactory myFact = new MyFactory("127.0.0.1", 1234);
     ExecutorService executor = Executors.newFixedThreadPool(nthreads, myFact);
     // ExecutorService executor = Executors.newCachedThreadPool();
 
