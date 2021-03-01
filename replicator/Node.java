@@ -192,6 +192,7 @@ class Node {
     //byte[] ret = new byte[0];
     Reply reply = new Reply();
     reply.setOp(op.getOp());
+    reply.setSeq(op.getSeq());
 
     try {
       if (!COLUMN_FAMILIES.containsKey(table)) {
