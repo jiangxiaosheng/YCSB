@@ -1,19 +1,28 @@
 import site.ycsb.*;
 import java.io.*;
 import java.net.*;
+import java.util.*;
 import com.google.gson.*;
 import org.rocksdb.*;
 import net.jcip.annotations.GuardedBy;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import java.nio.ByteBuffer;
+import java.nio.file.*;
 
 class Node {
 
   private ServerSocket s;
-  private boolean isTail;
   private ExecutorService executor;
-  private String dest;
-  private int port;
+  private static int port;
+  private static String dest;
+  private static boolean isTail;
 
   @GuardedBy("Node.class") private static RocksDB rocksDb = null;
   @GuardedBy("Node.class") private static int references = 0;
@@ -29,8 +38,8 @@ class Node {
   private static final ConcurrentMap<String, Lock> COLUMN_FAMILY_LOCKS = new ConcurrentHashMap<>();
 
   // initialization
-  public Node(String role, String dest, int port) {
-    this.role = role.equals("tail") ? true : false;
+  public void init(boolean isTail, String dest, int port) throws DBException{
+    this.isTail = isTail;
     this.dest = dest;
     this.port = port;
 
@@ -61,10 +70,11 @@ class Node {
     }
   }
 
-  public void start() throws IOException {
+  public void start(int inPort) throws IOException{
     try {
       // set the max queueing size to 1000
-      s = new ServerSocket(this.port, 1000);
+      s = new ServerSocket(inPort, 1000);
+      this.executor = Executors.newFixedThreadPool(500);
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -75,6 +85,35 @@ class Node {
     }
   }
 
+  public void stop() {
+    this.executor.shutdown();
+    try {
+      if (!this.executor.awaitTermination(800, TimeUnit.MILLISECONDS)) {
+        this.executor.shutdownNow();
+      } 
+    } catch (InterruptedException e) {
+      this.executor.shutdownNow();
+    }
+    //close the socket
+    try {
+      this.s.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    //cleanup the db
+  }
+
+  public static void main(String[] args){
+    Node node = new Node();
+    try {
+      node.init(false, "127.0.0.1", 3456);
+      node.start(1234);
+      node.stop();
+    } catch (DBException | IOException e) {
+      e.printStackTrace();
+    }
+  }
+
   // the private class to handle requests from upstream
   private class UpstreamHandler implements Runnable {
 
@@ -82,7 +121,7 @@ class Node {
     private ObjectOutputStream out;
     private BufferedReader in;
     private Socket downstream;
-
+    
     public UpstreamHandler(Socket socket) {
       this.clientSock = socket;
     }
@@ -105,23 +144,23 @@ class Node {
           } else {
             //TODO: error handling
             str = "{"+ str.split("\\{", 2)[1];
-            //System.out.println(str);
+            System.out.println(str);
             Gson gson = new Gson();
             //de-serialize json string and handle operation
             try {
               ReplicatorOp op = gson.fromJson(str, ReplicatorOp.class);
               // System.out.println("op received: " + op.getOp());
-              Reply reply;
-              reply.setStatus(Status.ERROR);
+              Reply reply = new Reply();
+              reply.setStatus(site.ycsb.Status.ERROR);
               // keep retry until Status.OK
               while (!reply.getStatus().isOk()) {
                 reply = opHandler(op);
               }
               //TODO: this need to be in threadpool
-              this.downstream = new Socket(InetAddress.getByName(this.dest), this.port);
+              this.downstream = new Socket(InetAddress.getByName(Node.dest), Node.port);
               this.out = new ObjectOutputStream(downstream.getOutputStream());
               //forward the reply if isTail
-              if (this.isTail) {
+              if (Node.isTail) {
                 String json = gson.toJson(reply) + "\n";
                 //System.out.println(json);
                 out.writeObject(json);
@@ -227,6 +266,7 @@ class Node {
     }
     return reply;
   }
+
 
   private RocksDB initRocksDB() throws IOException, RocksDBException {
     if(!Files.exists(rocksDbDir)) {
