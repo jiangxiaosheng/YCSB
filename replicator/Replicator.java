@@ -1,21 +1,11 @@
 import site.ycsb.*;
-
 import java.io.*;
-import java.nio.ByteBuffer;
-import java.nio.file.*;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.net.*;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.gson.*;
-import org.rocksdb.*;
-import net.jcip.annotations.GuardedBy;
 
 public class Replicator {
 
@@ -35,14 +25,15 @@ public class Replicator {
   private ExecutorService recv;
   private List<ExecutorService> shardClient;
 
-  public void init(int shard, int threads) throws DBException {
+  public void init(Map<String, Integer> shardHeads, int threads) throws DBException {
     this.recv = Executors.newCachedThreadPool();
     //this.executor = Executors.newFixedThreadPool(1000);
+
+    // create thread pool executors for different shard heads
     this.shardClient = new ArrayList<>();
-    for(int i = 0; i < shard; i++) {
-      tmp = Executors.newFixedThreadPool(threads);
-      this.shardClient.add(tmp);
-    }
+    shardHeads.forEach((dest, port) -> 
+      this.shardClient.add(Executors.newFixedThreadPool(threads, new MyFactory(dest, port)))
+    );
   }
 
   public void start(int clientPort, int replyPort) throws IOException {
@@ -84,6 +75,13 @@ public class Replicator {
     //cleanup the db
   }
 
+  public static void main(String[] args) {
+    Map<Integer, String> shardHeads = new HashMap<>();
+    //note that each shard head has to have a unique ip
+    shardHeads.put("127.0.0.1", 2345);
+
+  }
+
   private class ClientHandler implements Runnable {
     private Socket clientSock;
     private ObjectOutputStream outstream;
@@ -110,8 +108,8 @@ public class Replicator {
               ReplicatorOp op = gson.fromJson(str, ReplicatorOp.class);
               //TODO: some load-distribution algo here to distribute request to shard heads
               //current implementation default to the first executor in list
-              Replicator.shardClient.get(0).execute();
-
+              Replicator.shardClient.get(0).execute(new Forward(op));
+              
             }catch (Exception e) {
               System.err.println("replicator deserialization failure")
               e.printStackTrace();
@@ -124,5 +122,19 @@ public class Replicator {
         e.printStackTrace();
       }
     }
-  }  
+  }
+
+  private class Forward implements Runnable {
+    private String op;
+
+    public Forward(String op) {
+      this.op = op;
+    }
+
+    public void run() {
+      ObjectOutputStream out = ((MyThread)Thread.currentThread()).getOutStream();
+      out.writeObject(this.op);
+    }
+  }
+  
 }
