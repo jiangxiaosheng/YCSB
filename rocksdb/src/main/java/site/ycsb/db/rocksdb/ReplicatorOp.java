@@ -12,12 +12,21 @@ public class ReplicatorOp {
   private String key;
   private byte[] values;
   private String operation;
+  private int seq;
 
   public ReplicatorOp(String t, String k, byte[] v, String o) {
     table = t;
     key = k;
     values = v;
     operation = o;
+  }
+
+  public void setSeq(int s) {
+    seq = s;
+  }
+
+  public int getSeq() {
+    return seq;
   }
 
   public String getTable() {
