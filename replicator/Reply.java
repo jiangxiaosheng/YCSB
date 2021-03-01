@@ -9,14 +9,20 @@ public class Reply {
   private byte[] values;
   private String operation;
   private Status status;
+  private int seq;
 
-  public Reply(byte[] v, String o, Status s) {
-    values = v;
-    operation = o;
-    status = s;
+  public Reply(byte[] v, String o, Status s, int seq) {
+    this.values = v;
+    this.operation = o;
+    this.status = s;
+    this.seq = seq;
   }
 
   public Reply() {}
+
+  public void setSeq(int s) {
+    this.seq = s;
+  }
 
   public void setValues(byte[] v) {
     values = v;
@@ -40,6 +46,10 @@ public class Reply {
 
   public Status getStatus() {
     return status;
+  }
+
+  public int getSeq() {
+    return seq;
   }
 }
 
