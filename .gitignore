@@ -25,3 +25,6 @@ output*
 # ignore standard Mac OS X files/dirs
 .DS_Store
 /differentbin/
+
+# ignore rocksdb.dir
+*.dir
