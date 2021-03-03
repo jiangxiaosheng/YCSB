@@ -105,6 +105,11 @@ class Node {
 
   public static void main(String[] args){
     Node node = new Node();
+    if (args.length < 4) {
+			System.out.println("please run with inputs");
+			System.out.println("  java <dependencies> Node isTail<true/false> dest_ip dest_port listen_port");
+			return;
+		}
     try {
       node.init(false, "127.0.0.1", 3456);
       node.start(1234);
