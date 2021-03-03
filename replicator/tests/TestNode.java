@@ -20,13 +20,17 @@ class TestNode {
 			Socket s = new Socket(InetAddress.getByName(dest), dest_port);
 			ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
 			ServerSocket serv = new ServerSocket(l_port);
-			new Thread(new Listen(serv)).start(); 
+			Listen listen = new Listen(serv);
+			Thread t = new Thread(listen);
+			t.start();
 			Gson gson = new Gson();
 			out.writeObject(gson.toJson(op) + "\n");
 			out.close();
 			s.close();
 			Thread.sleep(10000);
-		  serv.close();					
+		  listen.terminate();
+			t.join();
+			serv.close();					
 		} catch (InterruptedException | IOException e) {
 			e.printStackTrace();
 		}
@@ -35,12 +39,15 @@ class TestNode {
   
   private static class Listen implements Runnable {
 		private ServerSocket serv;
+		private boolean isAlive;
 		public Listen(ServerSocket serv) {
 			this.serv = serv;
+			this.isAlive = true;
 		}
+		public void terminate() { this.isAlive = false; }
 		@Override
 		public void run(){
-			while(true) {
+			while(isAlive) {
 				try {
 					Socket soc = this.serv.accept();
 					BufferedReader in = new BufferedReader(new InputStreamReader(soc.getInputStream()));
