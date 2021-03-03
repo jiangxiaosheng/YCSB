@@ -93,7 +93,7 @@ public class Replicator {
   public static void main(String[] args) {
     Map<String, Integer> shardHeads = new HashMap<>();
     //note that each shard head has to have a unique ip
-    shardHeads.put("127.0.0.1", 2345);
+    shardHeads.put("128.110.153.219", 2345);
     Replicator replicator = new Replicator();
     try {
       replicator.init(shardHeads, 200);
@@ -126,8 +126,10 @@ public class Replicator {
           } else {
             Gson gson = new Gson();
             //de-serialize json string and forward operations
-            try {
-              ReplicatorOp op = gson.fromJson(str, ReplicatorOp.class);
+						str = "{" + str.split("\\{", 2)[1];
+						System.out.println("string is: " + str);
+            try {	
+						  ReplicatorOp op = gson.fromJson(str, ReplicatorOp.class);
               //TODO: some load-distribution algo here to distribute request to shard heads
               //current implementation default to the first executor in list
 
@@ -145,13 +147,14 @@ public class Replicator {
               synchronized(Replicator.shardClient) {
                 Replicator.shardClient.get(0).execute(new Forward(str));
               }
+							break;
             } catch (Exception e) {
               System.err.println("replicator deserialization failure");
               e.printStackTrace();
             }
           }
         }
-        in.close();
+        // in.close();
         // clientSock.close();
       } catch (IOException e) {
         e.printStackTrace();
@@ -207,6 +210,17 @@ public class Replicator {
       this.isAlive = false;
     }
   }
+	
+	private class MySocket {
+		private Socket socket;
+		private BufferedReader in;
+		public MySocket(Socket socket, BufferedReader in) {
+			this.socket = socket;
+			this.in = in;
+		}
+		public Socket getSocket() { return socket; }
+		public BufferedReader getInStream() { return in; }
+	}
 
   private class ReplyHandler implements Runnable {
     Socket sock;
@@ -230,14 +244,14 @@ public class Replicator {
             //TODO: error handling
             str = "{"+ str.split("\\{", 2)[1];
             //de-serialize json string and handle operation
-
+						System.out.println("reply: " + str);
             Reply reply = gson.fromJson(str, Reply.class);
             // check if any clientSock match in waiting HashMap
             int seq = reply.getSeq();
             synchronized(Replicator.waiting) {
               // retrieve clientsock and send back reply
               Socket clientSock = Replicator.waiting.remove(seq);
-              if(clientSock == null) {
+							if(clientSock == null) {
                 System.err.println("seq: " + seq + " found with no matching client sock");
                 return;
               }
@@ -248,6 +262,7 @@ public class Replicator {
             }
           }
         }
+				in.close();
       } catch (Exception e) {
         e.printStackTrace();
       }
