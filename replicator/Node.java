@@ -110,9 +110,13 @@ class Node {
 			System.out.println("  java <dependencies> Node isTail<true/false> dest_ip dest_port listen_port");
 			return;
 		}
+
+		System.out.println("isTail: " + args[0] + " listen on port " + args[3]);
+		System.out.println("forward to: " + args[1] + " port: " + args[2]);
+		
     try {
-      node.init(false, "127.0.0.1", 3456);
-      node.start(1234);
+      node.init(args[0].equals("true")?true:false, args[1], Integer.parseInt(args[2]));
+      node.start(Integer.parseInt(args[3]));
       node.stop();
     } catch (DBException | IOException e) {
       e.printStackTrace();
@@ -167,7 +171,7 @@ class Node {
               //forward the reply if isTail
               if (Node.isTail) {
                 String json = gson.toJson(reply) + "\n";
-                //System.out.println(json);
+                System.out.println("reply: " + json);
                 out.writeObject(json);
               } else { //forward the orignal json
                 out.writeObject(str);
@@ -175,6 +179,7 @@ class Node {
               //TODO: this will be in the threadpool
               this.out.close();
               this.downstream.close();
+							System.out.println("out closing");
             } catch (Exception e) {
               System.out.println("seg: " + str);
               e.printStackTrace();
@@ -211,7 +216,6 @@ class Node {
       switch (op.getOp()) {
         case "insert":
           rocksDb.put(cf, key.getBytes(UTF_8), op.getValues());
-          //TODO: insert comm with two secondaries here
           reply.setStatus(site.ycsb.Status.OK);
           break;
         case "read":
