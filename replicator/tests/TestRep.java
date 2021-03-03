@@ -3,35 +3,35 @@ import java.io.*;
 import java.net.*;
 import com.google.gson.*;
 
-class TestNode {
+class TestRep {
 	public static void main(String[] args) {
-		if (args.length < 3) {
+		if (args.length < 2) {
 			System.out.println("usage: ");
-			System.out.println("java <dependencies> TestNode dest_ip dest_port listen_port");
+			System.out.println("java <dependencies> TestRep dest_ip dest_port");
 			return;
 		}
 	  String dest = args[0];
 		int dest_port = Integer.parseInt(args[1]);	
-		int l_port = Integer.parseInt(args[2]);
 	
 		ReplicatorOp op = new ReplicatorOp("ycsb", "world", new byte[5], "insert");
 		
 		try {
 			Socket s = new Socket(InetAddress.getByName(dest), dest_port);
 			ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
-			ServerSocket serv = new ServerSocket(l_port);
-			Listen listen = new Listen(serv);
-			Thread t = new Thread(listen);
-			t.start();
+			BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
 			Gson gson = new Gson();
 			out.writeObject(gson.toJson(op) + "\n");
-			out.close();
+			// out.close();
+			String str;
+//			Thread.sleep(5000);
+			System.out.println("cp1");
+			while((str = in.readLine()) != null) {
+				System.out.println("recved str: " + str);
+			}
+			System.out.println("cp2");
+			in.close();
 			s.close();
-			Thread.sleep(10000);
-		  listen.terminate();
-			t.join();
-			serv.close();					
-		} catch (InterruptedException | IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	
@@ -48,18 +48,6 @@ class TestNode {
 		@Override
 		public void run(){
 			while(isAlive) {
-				try {
-					Socket soc = this.serv.accept();
-					BufferedReader in = new BufferedReader(new InputStreamReader(soc.getInputStream()));
-					String str;
-					while((str = in.readLine()) != null) {
-						System.out.println("recved str: " + str);
-					}
-					in.close();
-					soc.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}	
 			}
 		}
 	}	
