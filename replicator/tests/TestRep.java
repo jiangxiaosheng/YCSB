@@ -17,25 +17,27 @@ class TestRep {
 		
 		List<ReplicatorOp> ops = new ArrayList<>();	
 		byte[] inputs = { 0,0,0,6,102,105,101,108,100,49,0,0,0,0,0,0,0,6,102,105,101,108,100,48,0,0,0,0,0,0,0,6,102,105,101,108,100,55,0,0,0,0,0,0,0,6,102,105,101,108,100,54,0,0,0,0,0,0,0,6,102,105,101,108,100,57,0,0,0,0,0,0,0,6,102,105,101,108,100,56,0,0,0,0,0,0,0,6,102,105,101,108,100,51,0,0,0,0,0,0,0,6,102,105,101,108,100,50,0,0,0,0,0,0,0,6,102,105,101,108,100,53,0,0,0,0,0,0,0,6,102,105,101,108,100,52,0,0,0,0 };
-    ops.add(new ReplicatorOp("ycsb", "world", inputs, "insert"));
+    	ops.add(new ReplicatorOp("ycsb", "world", inputs, "insert"));
 		ops.add(new ReplicatorOp("ycsb", "world", null, "read"));
 		ops.add(new ReplicatorOp("ycsb", "world", inputs, "update"));
 		ops.add(new ReplicatorOp("ycsb", "world", null, "delete"));
 		
 		try {
 			Gson gson = new Gson();
-			for(ReplicatorOp op: ops) {
-				Socket s = new Socket(InetAddress.getByName(dest), dest_port);
-				ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
-				BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
-				out.writeObject(gson.toJson(op) + "\n");
-				String str;
-				while((str = in.readLine()) != null) {
-					System.out.println("recved str: " + str);
+			for(int i = 0; i < 100; i++) {
+				for(ReplicatorOp op: ops) {
+					Socket s = new Socket(InetAddress.getByName(dest), dest_port);
+					ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
+					BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
+					out.writeObject(gson.toJson(op) + "\n");
+					String str;
+					while((str = in.readLine()) != null) {
+						System.out.println("recved str: " + str);
+					}
+					in.close();
+				out.close();
+				s.close();
 				}
-				in.close();
-			  out.close();
-			  s.close();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
