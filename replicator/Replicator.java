@@ -93,7 +93,7 @@ public class Replicator {
   public static void main(String[] args) {
     Map<String, Integer> shardHeads = new HashMap<>();
     //note that each shard head has to have a unique ip
-    shardHeads.put("128.105.144.229", 2345);
+    shardHeads.put("128.110.153.129", 2345);
     Replicator replicator = new Replicator();
     try {
       replicator.init(shardHeads, 200);
@@ -137,6 +137,7 @@ public class Replicator {
               //TODO: waiting should be changed into concurrentHashMap
               synchronized(waiting) {
                 Replicator.waiting.put(Replicator.seq, this.clientSock);
+                System.out.println("is it null? " + seq + " " + (this.clientSock == null));
               }
               synchronized(Replicator.class) {
                 System.out.println("recd: " + seq);
@@ -171,8 +172,9 @@ public class Replicator {
     }
 
     public void run() {
-      ObjectOutputStream out = ((MyThread)Thread.currentThread()).getOutStream();
+      Socket sock = ((MyThread)Thread.currentThread()).getSocket();
       try {
+        ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
         out.writeObject(this.op);
       } catch(IOException e) {
         e.printStackTrace();
