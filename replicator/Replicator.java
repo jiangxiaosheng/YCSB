@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ConcurrentHashMap;
 import java.net.*;
 import com.google.gson.*;
 
@@ -11,7 +12,7 @@ public class Replicator {
 
   private ServerSocket servSock;
   private static int seq; //global seq number for operations
-  private static Map<Integer, Socket> waiting; //TODO: modify this to concurrentHashMap
+  private static ConcurrentHashMap<Integer, Socket> waiting; //TODO: modify this to concurrentHashMap
   private Thread replyT;
   private Feedback replyRun;
 
@@ -37,10 +38,10 @@ public class Replicator {
     shardHeads.forEach((dest, port) -> 
       this.shardClient.add(Executors.newFixedThreadPool(threads, new site.ycsb.MyFactory(dest, port)))
     );
-    synchronized(Replicator.class) {
-      this.waiting = new HashMap<>();
-      this.seq = 0;
-    }
+    // synchronized(Replicator.waiting) {
+    this.waiting = new ConcurrentHashMap<>();
+    this.seq = 0;
+    // }
 
   }
 
@@ -137,10 +138,6 @@ public class Replicator {
               //TODO: waiting should be changed into concurrentHashMap
               synchronized(waiting) {
                 Replicator.waiting.put(Replicator.seq, this.clientSock);
-                System.out.println("is it null? " + seq + " " + (this.clientSock == null));
-              }
-              synchronized(Replicator.class) {
-                System.out.println("recd: " + seq);
                 op.setSeq(Replicator.seq++);
               }
 
@@ -247,20 +244,21 @@ public class Replicator {
             //TODO: error handling
             str = "{"+ str.split("\\{", 2)[1];
             //de-serialize json string and handle operation
-						System.out.println("reply: " + str);
+						// System.out.println("reply: " + str);
             Reply reply = gson.fromJson(str, Reply.class);
             // check if any clientSock match in waiting HashMap
             int seq = reply.getSeq();
-            synchronized(Replicator.waiting) {
-              // retrieve clientsock and send back reply
-              Socket clientSock = Replicator.waiting.remove(seq);
-							if(clientSock == null) {
-                System.err.println("seq: " + seq + " found with no matching client sock");
-                return;
-              }
-              ObjectOutputStream out = new ObjectOutputStream(clientSock.getOutputStream());
-              out.writeObject(str + "\n\n");
+            System.out.println("this end: reply status " + reply.getStatus());
+
+            // retrieve clientsock and send back reply
+            Socket clientSock = Replicator.waiting.remove(seq);
+            if(clientSock == null) {
+              System.err.println("seq: " + seq + " found with no matching client sock");
+              return;
             }
+            ObjectOutputStream out = new ObjectOutputStream(clientSock.getOutputStream());
+            out.writeObject(str + "\n\n");
+
           }
         }
 				in.close();
