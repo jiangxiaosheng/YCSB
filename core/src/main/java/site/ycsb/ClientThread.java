@@ -24,7 +24,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-// import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A thread for executing transactions or data inserts to the database.
@@ -117,11 +117,12 @@ public class ClientThread implements Runnable {
       long randomMinorDelay = ThreadLocalRandom.current().nextInt((int) targetOpsTickNs);
       sleepUntil(System.nanoTime() + randomMinorDelay);
     }
-    int nthreads = 2000;
+    int nthreads = 20;
     long t1 = System.nanoTime();
 
-    MyFactory myFact = new MyFactory("127.0.0.1", 1234);
+    MyFactory myFact = new MyFactory("128.105.144.223", 1234);
     ExecutorService executor = Executors.newFixedThreadPool(nthreads, myFact);
+    //ExecutorService executor = Executors.newFixedThreadPool(nthreads);
     // ExecutorService executor = Executors.newCachedThreadPool();
 
     long tk = 0;
@@ -130,14 +131,15 @@ public class ClientThread implements Runnable {
 
     try {
       
-      int rate = 50000; //# of operations started per second
-      int batch =40;
+      int rate = 20; //# of operations started per second
+      int batch =1;
       int divide = 1;
       int minibatch = batch/divide;
       long intervalns = 500000000/rate*batch;
       System.out.println("intervalns: " + intervalns + " opcount: " + opcount + " minibatch: " + minibatch);
       System.out.println("expected sleep sum " + intervalns * (opcount/batch-1));
       this.loopLatch = new CountDownLatch(opcount/minibatch);
+      System.out.println("latchcount: " + opcount/minibatch);
       /*
       this.loopLatch = new CountDownLatch(nthreads);
       int batch = opcount / nthreads;
@@ -183,12 +185,14 @@ public class ClientThread implements Runnable {
     System.out.println("dur of sleep: " + tk);
 
     try {
+      System.out.println("ckpt0");
       loopLatch.await();
-      /*
-       * executor.shutdown();
+      System.out.println("ckpt1");
+      executor.shutdown();
       if (!executor.awaitTermination(800, TimeUnit.MILLISECONDS)) {
-       executor.shutdownNow();
-      } */
+        executor.shutdownNow();
+      } 
+      System.out.println("ckpt2");
     } catch (InterruptedException ie) {
       ie.printStackTrace();
       executor.shutdownNow();

@@ -25,11 +25,7 @@ class Service {
                 while((str = in.readLine()) != null) {
                     System.out.println("the string is: " + str);
                     out.writeObject("Pong: " + str + "\n\n");
-                    // System.out.println("wrote" + str);
-                    if (str.contains("EOF")) {break;}
-                    
                 }
-                out.writeObject("EOF\n");
                 System.out.println("out");
                 in.close();
                 out.close();

@@ -29,17 +29,25 @@ class BatchOp implements Runnable {
   }
 
   public void run() {
-    ObjectOutputStream out = ((MyThread)Thread.currentThread()).getOutStream();
-    BufferedReader in = ((MyThread)Thread.currentThread()).getInStream();
     
-    if (doTransaction) {
-      for(int i = 0; i < opcount; i++) {
-        status = workload.doTransaction(db, workloadstate, out, in);
+    Socket s = ((MyThread)Thread.currentThread()).getSocket();
+    try {
+      if (doTransaction) {
+        for(int i = 0; i < opcount; i++) {
+          ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
+          BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
+          status = workload.doTransaction(db, workloadstate, out, in);
+        }
+      } else {
+        for(int i = 0; i < opcount; i++) {
+          ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
+          BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
+          status = workload.doInsert(db, workloadstate, out, in);
+          System.out.println("status: " + status);
+        }
       }
-    } else {
-      for(int i = 0; i < opcount; i++) {
-        status = workload.doInsert(db, workloadstate, out, in);
-      }
+    } catch(IOException e) {
+      e.printStackTrace();
     }
 
     loopLatch.countDown();
