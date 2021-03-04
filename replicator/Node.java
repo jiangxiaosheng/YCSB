@@ -153,7 +153,7 @@ class Node {
           } else {
             //TODO: error handling
             str = "{"+ str.split("\\{", 2)[1];
-            System.out.println(str);
+            // System.out.println(str);
             Gson gson = new Gson();
             //de-serialize json string and handle operation
             try {
@@ -170,7 +170,7 @@ class Node {
               this.out = new ObjectOutputStream(downstream.getOutputStream());
               //forward the reply if isTail
               if (Node.isTail) {
-                String json = gson.toJson(reply) + "\n";
+                String json = gson.toJson(reply);
                 System.out.println("reply: " + json);
                 out.writeObject(json);
               } else { //forward the orignal json
@@ -179,7 +179,7 @@ class Node {
               //TODO: this will be in the threadpool
               this.out.close();
               this.downstream.close();
-							System.out.println("out closing");
+							// System.out.println("out closing");
             } catch (Exception e) {
               System.out.println("seg: " + str);
               e.printStackTrace();
