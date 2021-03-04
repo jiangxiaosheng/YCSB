@@ -30,13 +30,11 @@ class TestRep {
 					ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
 					BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
 					out.writeObject(gson.toJson(op) + "\n");
-					String str;
-					while((str = in.readLine()) != null) {
-						System.out.println("recved str: " + str);
-					}
+					String str = in.readLine();
+					System.out.println("recved str: " + str);
 					in.close();
-				out.close();
-				s.close();
+					out.close();
+					s.close();
 				}
 			}
 		} catch (Exception e) {
