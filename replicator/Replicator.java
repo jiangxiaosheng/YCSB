@@ -93,7 +93,7 @@ public class Replicator {
   public static void main(String[] args) {
     Map<String, Integer> shardHeads = new HashMap<>();
     //note that each shard head has to have a unique ip
-    shardHeads.put("128.110.153.219", 2345);
+    shardHeads.put("128.105.144.229", 2345);
     Replicator replicator = new Replicator();
     try {
       replicator.init(shardHeads, 200);
@@ -127,7 +127,7 @@ public class Replicator {
             Gson gson = new Gson();
             //de-serialize json string and forward operations
 						str = "{" + str.split("\\{", 2)[1];
-						System.out.println("string is: " + str);
+						// System.out.println("string is: " + str);
             try {	
 						  ReplicatorOp op = gson.fromJson(str, ReplicatorOp.class);
               //TODO: some load-distribution algo here to distribute request to shard heads
@@ -139,6 +139,7 @@ public class Replicator {
                 Replicator.waiting.put(Replicator.seq, this.clientSock);
               }
               synchronized(Replicator.class) {
+                System.out.println("recd: " + seq);
                 op.setSeq(Replicator.seq++);
               }
 
@@ -147,7 +148,7 @@ public class Replicator {
               synchronized(Replicator.shardClient) {
                 Replicator.shardClient.get(0).execute(new Forward(str));
               }
-							break;
+							// break;
             } catch (Exception e) {
               System.err.println("replicator deserialization failure");
               e.printStackTrace();
@@ -256,9 +257,7 @@ public class Replicator {
                 return;
               }
               ObjectOutputStream out = new ObjectOutputStream(clientSock.getOutputStream());
-              out.writeObject(str);
-              out.close();
-              clientSock.close();
+              out.writeObject(str + "\n\n");
             }
           }
         }
