@@ -119,7 +119,7 @@ public class Replicator {
         in = new BufferedReader(new InputStreamReader(clientSock.getInputStream()));
         String str;
         while((str = in.readLine()) != null) {
-          //System.out.println("str: " + str);
+          System.out.println("str: " + str.substring(Math.max(0, str.length() - 15), str.length()));
           if (str.length() == 0) {
             System.out.println("end of stream");
           } else if (str.length() < 7) {
@@ -140,12 +140,12 @@ public class Replicator {
                 Replicator.waiting.put(Replicator.seq, this.clientSock);
                 op.setSeq(Replicator.seq++);
               }
-
-              str = gson.toJson(op) + "\n";
+              System.out.println("seq recv from client: " + op.getSeq());
+              str = gson.toJson(op) + "\n\n";
               //TODO: think more about sync mechanism
-              synchronized(Replicator.shardClient) {
-                Replicator.shardClient.get(0).execute(new Forward(str));
-              }
+              // synchronized(Replicator.shardClient) {
+              Replicator.shardClient.get(0).execute(new Forward(str, op.getSeq()));
+              // }
 							// break;
             } catch (Exception e) {
               System.err.println("replicator deserialization failure");
@@ -163,9 +163,11 @@ public class Replicator {
 
   private class Forward implements Runnable {
     private String op;
+    private int seq;
 
-    public Forward(String op) {
+    public Forward(String op, int seq) {
       this.op = op;
+      this.seq = seq;
     }
 
     public void run() {
@@ -173,6 +175,7 @@ public class Replicator {
       try {
         ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
         out.writeObject(this.op);
+        System.out.println("seq -> tail: " + this.seq);
       } catch(IOException e) {
         e.printStackTrace();
       }
@@ -195,8 +198,10 @@ public class Replicator {
       try {
 
         replySock = new ServerSocket(this.replyPort, 200);
+        int i = 0;
         while(this.isAlive) {
           this.replyExe.execute(new ReplyHandler(replySock.accept()));
+          System.out.println("tail-> rep: " + i++);
         }
         shutdownService(replyExe);
         replySock.close();
@@ -211,17 +216,6 @@ public class Replicator {
     }
   }
 	
-	private class MySocket {
-		private Socket socket;
-		private BufferedReader in;
-		public MySocket(Socket socket, BufferedReader in) {
-			this.socket = socket;
-			this.in = in;
-		}
-		public Socket getSocket() { return socket; }
-		public BufferedReader getInStream() { return in; }
-	}
-
   private class ReplyHandler implements Runnable {
     Socket sock;
     Gson gson;
@@ -237,7 +231,8 @@ public class Replicator {
         String str;
         while((str = in.readLine()) != null) {
           if (str.length() == 0) {
-            System.out.println("end of stream");
+            // System.out.println("end of stream");
+            continue;
           } else if (str.length() < 7) {
             System.out.println(str + " is not a valid operation");
           } else {
@@ -248,8 +243,7 @@ public class Replicator {
             Reply reply = gson.fromJson(str, Reply.class);
             // check if any clientSock match in waiting HashMap
             int seq = reply.getSeq();
-            System.out.println("this end: reply status " + reply.getStatus());
-
+            System.out.println("recd seq: " + seq);
             // retrieve clientsock and send back reply
             Socket clientSock = Replicator.waiting.remove(seq);
             if(clientSock == null) {
@@ -257,8 +251,8 @@ public class Replicator {
               return;
             }
             ObjectOutputStream out = new ObjectOutputStream(clientSock.getOutputStream());
-            out.writeObject(str + "\n\n");
-
+            out.writeObject(str + "\n");
+            System.out.println("rep -> ycsb: " + seq);
           }
         }
 				in.close();
