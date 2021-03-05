@@ -20,6 +20,7 @@ class Node {
 
   private ServerSocket s;
   private ExecutorService executor;
+  private static ExecutorService clientPool;
   private static int port;
   private static String dest;
   private static boolean isTail;
@@ -42,6 +43,8 @@ class Node {
     this.isTail = isTail;
     this.dest = dest;
     this.port = port;
+    this.executor = Executors.newFixedThreadPool(400);//TODO: subject to change
+    this.clientPool = Executors.newFixedThreadPool(200, new MyFactory(dest, port));
 
     synchronized(Node.class) {
       if(rocksDb == null) {
@@ -72,35 +75,41 @@ class Node {
 
   public void start(int inPort) throws IOException{
     try {
-      // set the max queueing size to 1000
-      s = new ServerSocket(inPort, 1000);
-      this.executor = Executors.newFixedThreadPool(500);
+      // set the max queueing size to 200
+      s = new ServerSocket(inPort, 400);      
     } catch (IOException e) {
       e.printStackTrace();
     }
     // listening on upstream request
+    int i = 0;
     while (true) {
       //TODO: modify this executor to have ObjectOutputStream of its own
       this.executor.execute(new UpstreamHandler(s.accept()));
+      System.out.println("rep -> tail: " + i++);
+    }
+  }
+
+  public void shutdownService(ExecutorService executor) {
+    executor.shutdown();
+    try {
+      if (!executor.awaitTermination(800, TimeUnit.MILLISECONDS)) {
+        executor.shutdownNow();
+      } 
+    } catch (InterruptedException e) {
+      executor.shutdownNow();
     }
   }
 
   public void stop() {
-    this.executor.shutdown();
-    try {
-      if (!this.executor.awaitTermination(800, TimeUnit.MILLISECONDS)) {
-        this.executor.shutdownNow();
-      } 
-    } catch (InterruptedException e) {
-      this.executor.shutdownNow();
-    }
-    //close the socket
+    shutdownService(this.executor);
+    shutdownService(this.clientPool);
+    
     try {
       this.s.close();
     } catch (IOException e) {
       e.printStackTrace();
     }
-    //cleanup the db
+
   }
 
   public static void main(String[] args){
@@ -127,9 +136,7 @@ class Node {
   private class UpstreamHandler implements Runnable {
 
     private Socket clientSock;
-    private ObjectOutputStream out;
     private BufferedReader in;
-    private Socket downstream;
     
     public UpstreamHandler(Socket socket) {
       this.clientSock = socket;
@@ -145,6 +152,7 @@ class Node {
       try {
         this.in = new BufferedReader(new InputStreamReader(clientSock.getInputStream()));
         String str;
+        System.out.println("I here");
         while((str = in.readLine()) != null) {
           if (str.length() == 0) {
             System.out.println("end of stream");
@@ -158,27 +166,18 @@ class Node {
             //de-serialize json string and handle operation
             try {
               ReplicatorOp op = gson.fromJson(str, ReplicatorOp.class);
-              // System.out.println("op received: " + op.getOp());
+              System.out.println("op received: " + op.getSeq());
               Reply reply = new Reply();
               reply.setStatus(site.ycsb.Status.ERROR);
               // keep retry until Status.OK
               while (!reply.getStatus().isOk()) {
                 reply = opHandler(op);
               }
-              //TODO: this need to be in threadpool
-              this.downstream = new Socket(InetAddress.getByName(Node.dest), Node.port);
-              this.out = new ObjectOutputStream(downstream.getOutputStream());
-              //forward the reply if isTail
-              if (Node.isTail) {
-                String json = gson.toJson(reply);
-                System.out.println("reply: " + json);
-                out.writeObject(json);
-              } else { //forward the orignal json
-                out.writeObject(str);
+              if (Node.isTail) { //forward the reply if isTail
+                Node.clientPool.execute(new Forward(gson.toJson(reply), reply.getSeq()));
+              } else {
+                Node.clientPool.execute(new Forward(str, reply.getSeq()));
               }
-              //TODO: this will be in the threadpool
-              this.out.close();
-              this.downstream.close();
 							// System.out.println("out closing");
             } catch (Exception e) {
               System.out.println("seg: " + str);
@@ -277,6 +276,26 @@ class Node {
     return reply;
   }
 
+   private class Forward implements Runnable {
+    private String op;
+    private int seq;
+
+    public Forward(String op, int seq) {
+      this.op = op + "\n\n";
+      this.seq = seq;
+    }
+    @Override
+    public void run() {
+      Socket sock = ((MyThread)Thread.currentThread()).getSocket();
+      try {
+        ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
+        out.writeObject(this.op);
+        System.out.println("this reply: " + this.seq + " sent");
+      } catch(IOException e) {
+        e.printStackTrace();
+      }
+    }
+  }
 
   private RocksDB initRocksDB() throws IOException, RocksDBException {
     if(!Files.exists(rocksDbDir)) {
