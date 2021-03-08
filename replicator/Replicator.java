@@ -5,6 +5,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.net.*;
 import com.google.gson.*;
 
@@ -48,7 +49,7 @@ public class Replicator {
   public void start(int clientPort, int replyPort) throws IOException {
     //start the server socket
     try {
-      this.servSock = new ServerSocket(clientPort, 1000);
+      this.servSock = new ServerSocket(clientPort, 400);
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -61,6 +62,7 @@ public class Replicator {
     //handle requests
     while (true) {
       this.recv.execute(new ClientHandler(servSock.accept()));
+      System.out.println("count: " + ((ThreadPoolExecutor)this.recv).getActiveCount());
     }
   }
 
@@ -97,7 +99,7 @@ public class Replicator {
     shardHeads.put("128.110.153.129", 2345);
     Replicator replicator = new Replicator();
     try {
-      replicator.init(shardHeads, 200);
+      replicator.init(shardHeads, 400);
       replicator.start(1234, 9876);
     } catch (DBException | IOException e) {
       e.printStackTrace();
@@ -116,10 +118,10 @@ public class Replicator {
 
     public void run() {
       try {
-        in = new BufferedReader(new InputStreamReader(clientSock.getInputStream()));
+        in = new BufferedReader(new InputStreamReader(clientSock.getInputStream()), 32000);
         String str;
         while((str = in.readLine()) != null) {
-          System.out.println("str: " + str.substring(Math.max(0, str.length() - 15), str.length()));
+          // System.out.println("str: " + str.substring(Math.max(0, str.length() - 15), str.length()));
           if (str.length() == 0) {
             System.out.println("end of stream");
           } else if (str.length() < 7) {
@@ -140,8 +142,8 @@ public class Replicator {
                 Replicator.waiting.put(Replicator.seq, this.clientSock);
                 op.setSeq(Replicator.seq++);
               }
-              System.out.println("seq recv from client: " + op.getSeq());
-              str = gson.toJson(op) + "\n\n";
+              // System.out.println("seq recv from client: " + op.getSeq());
+              str = gson.toJson(op) + "\n";
               //TODO: think more about sync mechanism
               // synchronized(Replicator.shardClient) {
               Replicator.shardClient.get(0).execute(new Forward(str, op.getSeq()));
@@ -196,8 +198,7 @@ public class Replicator {
     public void run() {
       ServerSocket replySock;
       try {
-
-        replySock = new ServerSocket(this.replyPort, 200);
+        replySock = new ServerSocket(this.replyPort, 400);
         int i = 0;
         while(this.isAlive) {
           this.replyExe.execute(new ReplyHandler(replySock.accept()));
@@ -227,9 +228,11 @@ public class Replicator {
 
     public void run() {
       try {
-        BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+        BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()), 32000);
         String str;
         while((str = in.readLine()) != null) {
+          System.out.println("available: " + sock.getInputStream().available());
+          System.out.println("str: " + str.substring(Math.max(0, str.length() - 30), str.length()));
           if (str.length() == 0) {
             // System.out.println("end of stream");
             continue;
