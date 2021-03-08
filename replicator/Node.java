@@ -85,7 +85,7 @@ class Node {
     while (true) {
       //TODO: modify this executor to have ObjectOutputStream of its own
       this.executor.execute(new UpstreamHandler(s.accept()));
-      System.out.println("rep -> tail: " + i++);
+      // System.out.println("rep -> tail: " + i++);
     }
   }
 
@@ -170,9 +170,9 @@ class Node {
               Reply reply = new Reply();
               reply.setStatus(site.ycsb.Status.ERROR);
               // keep retry until Status.OK
-              while (!reply.getStatus().isOk()) {
+              // while (!reply.getStatus().isOk()) {
                 reply = opHandler(op);
-              }
+              // }
               if (Node.isTail) { //forward the reply if isTail
                 Node.clientPool.execute(new Forward(gson.toJson(reply), reply.getSeq()));
               } else {
@@ -281,7 +281,7 @@ class Node {
     private int seq;
 
     public Forward(String op, int seq) {
-      this.op = op + "\n\n";
+      this.op = op + "\n";
       this.seq = seq;
     }
     @Override
