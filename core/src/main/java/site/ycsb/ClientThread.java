@@ -117,10 +117,17 @@ public class ClientThread implements Runnable {
       long randomMinorDelay = ThreadLocalRandom.current().nextInt((int) targetOpsTickNs);
       sleepUntil(System.nanoTime() + randomMinorDelay);
     }
+<<<<<<< HEAD
     int nthreads = 400;
     long t1 = System.nanoTime();
 
     MyFactory myFact = new MyFactory("128.110.153.80", 1234);
+=======
+    int nthreads = 500;
+    long t1 = System.nanoTime();
+
+    MyFactory myFact = new MyFactory("128.110.153.127", 1234);
+>>>>>>> grpc
     ExecutorService executor = Executors.newFixedThreadPool(nthreads, myFact);
     //ExecutorService executor = Executors.newFixedThreadPool(nthreads);
     // ExecutorService executor = Executors.newCachedThreadPool();
@@ -131,11 +138,18 @@ public class ClientThread implements Runnable {
 
     try {
       
+<<<<<<< HEAD
       int rate = 5000; //# of operations started per second
       int batch =20;
       int divide = 2;
+=======
+      int rate = 50000; //# of operations started per second
+      int batch =2000;
+      int divide = 20;
+>>>>>>> grpc
       int minibatch = batch/divide;
       long intervalns = 500000000/rate*batch;
+      System.out.println("thread count: " + nthreads);
       System.out.println("intervalns: " + intervalns + " opcount: " + opcount + " minibatch: " + minibatch);
       System.out.println("expected sleep sum " + intervalns * (opcount/batch-1));
       this.loopLatch = new CountDownLatch(opcount/minibatch);
@@ -149,9 +163,10 @@ public class ClientThread implements Runnable {
         long startTimeNanos = System.nanoTime();
         while (((opcount == 0) || (opsdone < opcount)) && !workload.isStopRequested()) {
           for (int i = 0; i < divide; i++) {
-            executor.execute(new BatchOp(workload, db, minibatch, workloadstate, "transaction", loopLatch));
+            executor.execute(new BatchOp(workload, db, minibatch, workloadstate, "transaction", loopLatch, opsdone));
+            opsdone += minibatch;
           }
-          opsdone += batch;
+          // opsdone += batch;
           
           if (opsdone < opcount) {
             tkk = System.nanoTime();
@@ -163,9 +178,10 @@ public class ClientThread implements Runnable {
         long startTimeNanos = System.nanoTime();
         while (((opcount == 0) || (opsdone < opcount)) && !workload.isStopRequested()) {
           for (int i = 0; i < divide; i++) {
-            executor.execute(new BatchOp(workload, db, minibatch, workloadstate, "insert", loopLatch));
+            executor.execute(new BatchOp(workload, db, minibatch, workloadstate, "insert", loopLatch, opsdone));
+            opsdone += minibatch;
           }
-          opsdone += batch;
+          // opsdone += batch;
          
           if (opsdone < opcount) {
             tkk = System.nanoTime();
