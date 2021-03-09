@@ -60,6 +60,15 @@ public class RocksDBClient extends DB {
   private static final ConcurrentMap<String, ColumnFamily> COLUMN_FAMILIES = new ConcurrentHashMap<>();
   private static final ConcurrentMap<String, Lock> COLUMN_FAMILY_LOCKS = new ConcurrentHashMap<>();
 
+  private byte[] placeholders = {0, 0, 0, 6, 102, 105, 101, 108, 100, 49, 0, 0, 0, 0, 0, 0, 0, 6, 102, 
+                                 105, 101, 108, 100, 48, 0, 0, 0, 0, 0, 0, 0, 6, 102, 105, 101, 108, 
+                                 100, 55, 0, 0, 0, 0, 0, 0, 0, 6, 102, 105, 101, 108, 100, 54, 0, 0, 
+                                 0, 0, 0, 0, 0, 6, 102, 105, 101, 108, 100, 57, 0, 0, 0, 0, 0, 0, 0, 6, 
+                                 102, 105, 101, 108, 100, 56, 0, 0, 0, 0, 0, 0, 0, 6, 102, 105, 101, 108, 
+                                 100, 51, 0, 0, 0, 0, 0, 0, 0, 6, 102, 105, 101, 108, 100, 50, 0, 0, 0, 
+                                 0, 0, 0, 0, 6, 102, 105, 101, 108, 100, 53, 0, 0, 0, 0, 0, 0, 0, 6, 102, 
+                                 105, 101, 108, 100, 52, 0, 0, 0, 0};
+
   @Override
   public void init() throws DBException {
     synchronized(RocksDBClient.class) {
@@ -277,7 +286,12 @@ public class RocksDBClient extends DB {
     Reply reply = iostream(op, out, in);
     ret = reply.getStatus();
     if (reply.getStatus().isOk()) {
-      deserializeValues(reply.getValues(), fields, result);
+      if(reply.getValues().length == 1) {
+        deserializeValues(placeholders, fields, result);
+        // System.out.println("placeholder");
+      } else {
+        deserializeValues(reply.getValues(), fields, result);
+      }
     }
     return ret;
   }
@@ -540,8 +554,10 @@ public class RocksDBClient extends DB {
     Reply reply = new Reply(null, null, Status.ERROR);
     
     try {
+      op.setSeq(((MyThread)Thread.currentThread()).incSeq());
       String json = gson.toJson(op) + "\n";
       out.writeObject(json);
+      // System.out.println("req: " + op.getSeq());
       String str;
       while ((str = in.readLine()) != null) {
         if (str.length() == 0) {
@@ -552,6 +568,11 @@ public class RocksDBClient extends DB {
           str = "{" + str.split("\\{", 2)[1];
           //de-serialize json string and handle operation
           reply = gson.fromJson(str, Reply.class);
+          int seq = reply.getSeq();
+          // if (seq % 1000 == 0) {
+          //   System.out.println("seq: " + seq);
+          // }
+          // System.out.println("reply: " + reply.getSeq());
           break;
         }
       }
