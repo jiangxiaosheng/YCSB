@@ -43,8 +43,8 @@ class Node {
     this.isTail = isTail;
     this.dest = dest;
     this.port = port;
-    this.executor = Executors.newFixedThreadPool(400);//TODO: subject to change
-    this.clientPool = Executors.newFixedThreadPool(200, new MyFactory(dest, port));
+    this.executor = Executors.newFixedThreadPool(500);//TODO: subject to change
+    this.clientPool = Executors.newFixedThreadPool(500, new MyFactory(dest, port));
 
     synchronized(Node.class) {
       if(rocksDb == null) {
@@ -76,7 +76,7 @@ class Node {
   public void start(int inPort) throws IOException{
     try {
       // set the max queueing size to 200
-      s = new ServerSocket(inPort, 400);      
+      s = new ServerSocket(inPort, 500);      
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -152,7 +152,7 @@ class Node {
       try {
         this.in = new BufferedReader(new InputStreamReader(clientSock.getInputStream()));
         String str;
-        System.out.println("I here");
+        // System.out.println("I here");
         while((str = in.readLine()) != null) {
           if (str.length() == 0) {
             System.out.println("end of stream");
@@ -166,7 +166,7 @@ class Node {
             //de-serialize json string and handle operation
             try {
               ReplicatorOp op = gson.fromJson(str, ReplicatorOp.class);
-              System.out.println("op received: " + op.getSeq());
+              // System.out.println("op received: " + op.getSeq());
               Reply reply = new Reply();
               reply.setStatus(site.ycsb.Status.ERROR);
               // keep retry until Status.OK
@@ -221,9 +221,10 @@ class Node {
           final byte[] val = rocksDb.get(cf, key.getBytes(UTF_8));
           if(val == null) {
             reply.setStatus(site.ycsb.Status.NOT_FOUND);
-            System.out.println("read - status: not found");
+            // System.out.println("read - status: not found");
           } else {
-            reply.setValues(val);
+            // reply.setValues(val);
+            reply.setValues(new byte[]{1});
             reply.setStatus(site.ycsb.Status.OK);
           }
           break;
@@ -249,7 +250,7 @@ class Node {
           final byte[] currentValues = rocksDb.get(cf, key.getBytes(UTF_8));
           if(currentValues == null) {
             reply.setStatus(site.ycsb.Status.NOT_FOUND);
-            System.out.println("update - status: not found");
+            // System.out.println("update - status: not found");
             break;
           }
           deserializeValues(currentValues, null, result);
@@ -290,7 +291,7 @@ class Node {
       try {
         ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
         out.writeObject(this.op);
-        System.out.println("this reply: " + this.seq + " sent");
+        // System.out.println("this reply: " + this.seq + " sent");
       } catch(IOException e) {
         e.printStackTrace();
       }

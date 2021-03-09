@@ -16,20 +16,23 @@ class BatchOp implements Runnable {
   private boolean doTransaction;
   private boolean status;
   private final CountDownLatch loopLatch;
+  private int seq;
 
   public BatchOp(Workload workload, DB db, int opcount, Object workloadstate,
-              String op, CountDownLatch loopLatch) {
+              String op, CountDownLatch loopLatch, int seq) {
     this.workload = workload;
     this.db = db;
     this.opcount = opcount;
     this.workloadstate = workloadstate;
     this.doTransaction = op.equals("transaction") ? true : false;
     this.loopLatch = loopLatch;
+    // ((MyThread)Thread.currentThread()).setSeq(seq);
+    this.seq = seq;
 
   }
 
   public void run() {
-    
+    ((MyThread)Thread.currentThread()).setSeq(seq);
     Socket s = ((MyThread)Thread.currentThread()).getSocket();
     try {
       if (doTransaction) {
@@ -43,7 +46,7 @@ class BatchOp implements Runnable {
           ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
           BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
           status = workload.doInsert(db, workloadstate, out, in);
-          System.out.println("status: " + status);
+          // System.out.println("status: " + status);
         }
       }
     } catch(IOException e) {
