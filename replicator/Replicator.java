@@ -49,7 +49,7 @@ public class Replicator {
   public void start(int clientPort, int replyPort) throws IOException {
     //start the server socket
     try {
-      this.servSock = new ServerSocket(clientPort, 400);
+      this.servSock = new ServerSocket(clientPort, 500);
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -62,7 +62,7 @@ public class Replicator {
     //handle requests
     while (true) {
       this.recv.execute(new ClientHandler(servSock.accept()));
-      System.out.println("count: " + ((ThreadPoolExecutor)this.recv).getActiveCount());
+      // System.out.println("count: " + ((ThreadPoolExecutor)this.recv).getActiveCount());
     }
   }
 
@@ -96,10 +96,10 @@ public class Replicator {
   public static void main(String[] args) {
     Map<String, Integer> shardHeads = new HashMap<>();
     //note that each shard head has to have a unique ip
-    shardHeads.put("128.110.153.129", 2345);
+    shardHeads.put("128.110.153.153", 2345);
     Replicator replicator = new Replicator();
     try {
-      replicator.init(shardHeads, 400);
+      replicator.init(shardHeads, 500);
       replicator.start(1234, 9876);
     } catch (DBException | IOException e) {
       e.printStackTrace();
@@ -118,7 +118,7 @@ public class Replicator {
 
     public void run() {
       try {
-        in = new BufferedReader(new InputStreamReader(clientSock.getInputStream()), 32000);
+        in = new BufferedReader(new InputStreamReader(clientSock.getInputStream()), 16000);
         String str;
         while((str = in.readLine()) != null) {
           // System.out.println("str: " + str.substring(Math.max(0, str.length() - 15), str.length()));
@@ -135,11 +135,12 @@ public class Replicator {
 						  ReplicatorOp op = gson.fromJson(str, ReplicatorOp.class);
               //TODO: some load-distribution algo here to distribute request to shard heads
               //current implementation default to the first executor in list
-
+              // int tmpSeq = op.getSeq();
               // add sequence number and forward to shard head
               //TODO: waiting should be changed into concurrentHashMap
               synchronized(waiting) {
                 Replicator.waiting.put(Replicator.seq, this.clientSock);
+                // Replicator.waiting.put(tmpSeq, this.clientSock);
                 op.setSeq(Replicator.seq++);
               }
               // System.out.println("seq recv from client: " + op.getSeq());
@@ -177,7 +178,7 @@ public class Replicator {
       try {
         ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
         out.writeObject(this.op);
-        System.out.println("seq -> tail: " + this.seq);
+        // System.out.println("seq -> tail: " + this.seq);
       } catch(IOException e) {
         e.printStackTrace();
       }
@@ -198,11 +199,11 @@ public class Replicator {
     public void run() {
       ServerSocket replySock;
       try {
-        replySock = new ServerSocket(this.replyPort, 400);
-        int i = 0;
+        replySock = new ServerSocket(this.replyPort, 500);
+        // int i = 0;
         while(this.isAlive) {
           this.replyExe.execute(new ReplyHandler(replySock.accept()));
-          System.out.println("tail-> rep: " + i++);
+          // System.out.println("tail-> rep: " + i++);
         }
         shutdownService(replyExe);
         replySock.close();
@@ -231,8 +232,6 @@ public class Replicator {
         BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()), 32000);
         String str;
         while((str = in.readLine()) != null) {
-          System.out.println("available: " + sock.getInputStream().available());
-          System.out.println("str: " + str.substring(Math.max(0, str.length() - 30), str.length()));
           if (str.length() == 0) {
             // System.out.println("end of stream");
             continue;
@@ -246,7 +245,7 @@ public class Replicator {
             Reply reply = gson.fromJson(str, Reply.class);
             // check if any clientSock match in waiting HashMap
             int seq = reply.getSeq();
-            System.out.println("recd seq: " + seq);
+            // System.out.println("recd seq: " + seq);
             // retrieve clientsock and send back reply
             Socket clientSock = Replicator.waiting.remove(seq);
             if(clientSock == null) {
@@ -255,7 +254,7 @@ public class Replicator {
             }
             ObjectOutputStream out = new ObjectOutputStream(clientSock.getOutputStream());
             out.writeObject(str + "\n");
-            System.out.println("rep -> ycsb: " + seq);
+            // System.out.println("rep -> ycsb: " + seq);
           }
         }
 				in.close();
