@@ -16,18 +16,19 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class SimpleClient {
+public class ConcurrentClient {
 
-    private static final Logger logger = Logger.getLogger(SimpleClient.class.getName());
+    private static final Logger logger = Logger.getLogger(ConcurrentClient.class.getName());
     private final RubbleKvStoreServiceGrpc.RubbleKvStoreServiceStub asyncStub;
+    private static CountDownLatch finish;
 
-    public SimpleClient(Channel channel) {
+    public ConcurrentClient(Channel channel) {
         asyncStub = RubbleKvStoreServiceGrpc.newStub(channel);
     }
 
-    public CountDownLatch insert() {
+    public void insert(int start, CountDownLatch finishLatch) {
         PutRequest request;
-        final CountDownLatch finishLatch = new CountDownLatch(1);
+        // final CountDownLatch finishLatch = new CountDownLatch(1);
         // StreamObserver<PutReply> replyObserver = new StreamObserver<PutReply>() {
 
         StreamObserver<PutRequest> requestObserver =
@@ -51,14 +52,14 @@ public class SimpleClient {
             });
 
         try {
-            int num_of_kv = 100;
-            for (int i = 0; i < num_of_kv; i++) {
+            int num_of_kv = 3;
+            for (int i = start; i < num_of_kv+start; i++) {
                 request = PutRequest.newBuilder().setKey("key " + i).setValue("value "+i).build();
                 requestObserver.onNext(request);
                 System.out.println("req " + i + " sent");
             }
         
-        logger.info("end of insert");
+            logger.info("end of insert");
         } catch (RuntimeException e) {
             // Cancel RPC
             requestObserver.onError(e);
@@ -68,26 +69,14 @@ public class SimpleClient {
         requestObserver.onCompleted();
 
         // return the latch while receiving happens asynchronously
-        return finishLatch;
+        //return finishLatch;
     }
 
 
     public static void main(String[] args) throws Exception{
-        String user = "world";
         // Access a service running on the local machine on port 50050
         String target = "localhost:50050";
-        // Allow passing in the user and target strings as command line arguments
         if (args.length > 0) {
-            if ("--help".equals(args[0])) {
-                System.err.println("Usage: [name [target]]");
-                System.err.println("");
-                System.err.println("  name    The name you wish to be greeted by. Defaults to " + user);
-                System.err.println("  target  The server to connect to. Defaults to " + target);
-                System.exit(1);
-            }
-            user = args[0];
-        }
-        if (args.length > 1) {
             target = args[1];
         }
 
@@ -100,16 +89,36 @@ public class SimpleClient {
             .usePlaintext()
             .build();
         try {
-            SimpleClient client = new SimpleClient(channel);
-            CountDownLatch finishLatch = client.insert();
-            if (!finishLatch.await(1, TimeUnit.MINUTES)) {
-                System.out.println("routeChat can not finish within 1 minutes");
+            int num_of_threads = 100;
+            finish = new CountDownLatch(num_of_threads); 
+	    for(int i = 0; i< num_of_threads; i++) {
+		new Thread(new Forward(i*3, channel, finish)).start();
+	    }
+            if (!finish.await(1, TimeUnit.MINUTES)) {
+                System.out.println("concurrent clients can not finish within 1 minutes");
             }
+
         } finally {
             // ManagedChannels use resources like threads and TCP connections. To prevent leaking these
             // resources the channel should be shut down when it will no longer be used. If it may be used
             // again leave it running.
             channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
+        }
+    }
+
+    private static class Forward implements Runnable {
+        private int seq;
+        private Channel channel;
+        private CountDownLatch latch;
+        public Forward(int seq, Channel channel, CountDownLatch latch) {
+            this.seq = seq;
+            this.channel = channel;
+            this.latch = latch;
+        }
+        @Override
+        public void run() {
+            ConcurrentClient client = new ConcurrentClient(this.channel);
+            client.insert(this.seq, this.latch); 
         }
     }
     
