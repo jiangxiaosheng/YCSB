@@ -9,7 +9,7 @@ option optimize_for = SPEED;
 // Node to Node communications.
 
 service N2N {
-  rpc Forward (stream Request) returns (Dull) {}
+  rpc Forward (Request) returns (Dull) {}
 }
 
 // Request for information.
