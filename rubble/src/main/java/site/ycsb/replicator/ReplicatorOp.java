@@ -1,4 +1,4 @@
-package site.ycsb.db.rubble;
+package site.ycsb.replicator;
 import java.util.*;
 
 /**

@@ -1,4 +1,4 @@
-package site.ycsb.db.rubble;
+package site.ycsb.replicator;
 
 import site.ycsb.*;
 import java.io.*;
@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ConcurrentHashMap;
 import java.net.*;
 import com.google.gson.*;
+import com.google.protobuf.MapEntry;
 
 /**
  * Replicator binding
@@ -40,9 +41,10 @@ public class Replicator {
 
     // create thread pool executors for different shard heads
     this.shardClient = new ArrayList<>();
-    shardHeads.forEach((dest, port) -> 
-      this.shardClient.add(Executors.newFixedThreadPool(threads, new Client.MyFactory(dest, port)))
-    );
+    for(Map.Entry<String, Integer> shardHead : shardHeads.entrySet()){
+      this.shardClient.add(Executors.newFixedThreadPool(threads, new Client.MyFactory(shardHead.getKey(), shardHead.getValue())));
+    }
+    
     // synchronized(Replicator.waiting) {
     this.waiting = new ConcurrentHashMap<>();
     this.seq = 0;
