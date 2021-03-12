@@ -1,1 +1,1 @@
-mvn -pl rocksdb -am clean package -Dmaven.test.skip=true
+mvn -pl rocksdb -am clean package -Dmaven.test.skip=true -Dcheckstyle.skip=true
