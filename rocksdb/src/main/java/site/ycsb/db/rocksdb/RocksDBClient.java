@@ -17,6 +17,7 @@
 
 package site.ycsb.db.rocksdb;
 
+import rubble.*;
 import site.ycsb.*;
 import site.ycsb.Status;
 import net.jcip.annotations.GuardedBy;
@@ -33,9 +34,17 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.net.*;
-
 import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.gson.*;
+
+import com.google.protobuf.Message;
+import io.grpc.Channel;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import io.grpc.stub.StreamObserver;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 
 /**
  * RocksDB binding for <a href="http://rocksdb.org/">RocksDB</a>.
@@ -415,54 +424,30 @@ public class RocksDBClient extends DB {
 
   @Override
   public Status insert(final String table, final String key, final Map<String, ByteIterator> values) {
-    //long cur = System.nanoTime();
-    Socket socket;
-    ObjectOutputStream out;
-    BufferedReader in;
-
-    Gson gson = new Gson();
-    Status ret = Status.ERROR;
-
-    try {
-      socket = new Socket(InetAddress.getByName("127.0.0.1"), 1234);
-      out = new ObjectOutputStream(socket.getOutputStream());
-      in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-      //add line break to read entries line by line
-      ReplicatorOp op = new ReplicatorOp(table, key, serializeValues(values), new String("insert"));
-      String json = gson.toJson(op) + "\n";
-      out.writeObject(json);
-      // listeners.add(new GenericListener("insert", null));
-      //TODO: might need to do some confirmation before returning status.OK
-      // timer += System.nanoTime() - cur;
-      String str;
-      while ((str = in.readLine()) != null) {
-        if (str.length() == 0) {
-          System.out.println("end of stream");
-        } else if (str.length() < 7) {
-          System.out.println(str + " is not a valid operation");
-        } else {
-          //TODO: error handling
-          str = "{" + str.split("\\{", 2)[1];
-          //de-serialize json string and handle operation
-          Reply reply = gson.fromJson(str, Reply.class);
-          ret = reply.getStatus();
-          break;
-        }
-      }
-      in.close();
-      out.close();
-      socket.close();
-    } catch(final IOException e) {
-      LOGGER.error(e.getMessage(), e);
-      // ret = Status.ERROR;
-    } finally {
-      return ret;
-    }
+    return Status.NOT_IMPLEMENTED;
   }
 
   @Override
   public Status insert(final String table, final String key, final Map<String, ByteIterator> values, 
-                        ObjectOutputStream out, BufferedReader in) {
+    ObjectOutputStream out, BufferedReader in) {
+     String target = "localhost:50050";
+     ManagedChannel channel = ManagedChannelBuilder.forTarget(target)
+	    .usePlaintext()
+  	    .build();
+     try {
+        SimpleClient client = new SimpleClient(channel);
+        CountDownLatch finishLatch = client.insert(); 
+        if (!finishLatch.await(1, TimeUnit.MINUTES)) {
+            System.out.println("simple client can not finish within 1 minutes");
+	}
+     } catch (InterruptedException e) {
+        e.printStackTrace();
+     } finally {
+        try {
+	   channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {e.printStackTrace();}
+     }
+
     Status ret = Status.ERROR;
     try {
       ReplicatorOp op = new ReplicatorOp(table, key, serializeValues(values), new String("insert"));
