@@ -117,10 +117,10 @@ public class ClientThread implements Runnable {
       long randomMinorDelay = ThreadLocalRandom.current().nextInt((int) targetOpsTickNs);
       sleepUntil(System.nanoTime() + randomMinorDelay);
     }
-    int nthreads = 500;
+    int nthreads = 1;
     long t1 = System.nanoTime();
 
-    MyFactory myFact = new MyFactory("128.110.153.127", 1234);
+    MyFactory myFact = new MyFactory("127.0.0.1", 1234);
     ExecutorService executor = Executors.newFixedThreadPool(nthreads, myFact);
     //ExecutorService executor = Executors.newFixedThreadPool(nthreads);
     // ExecutorService executor = Executors.newCachedThreadPool();
@@ -131,9 +131,9 @@ public class ClientThread implements Runnable {
 
     try {
       
-      int rate = 50000; //# of operations started per second
-      int batch =2000;
-      int divide = 20;
+      int rate = 5; //# of operations started per second
+      int batch =1;
+      int divide = 1;
       int minibatch = batch/divide;
       long intervalns = 500000000/rate*batch;
       System.out.println("thread count: " + nthreads);
@@ -167,6 +167,7 @@ public class ClientThread implements Runnable {
           for (int i = 0; i < divide; i++) {
             executor.execute(new BatchOp(workload, db, minibatch, workloadstate, "insert", loopLatch, opsdone));
             opsdone += minibatch;
+            System.out.println("opsdone: " + opsdone);
           }
           // opsdone += batch;
          
