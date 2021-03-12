@@ -80,6 +80,7 @@ LICENSE file.
       <url>https://oss.sonatype.org/content/repositories/snapshots</url>
     </snapshotRepository>
   </distributionManagement>
+
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -110,6 +111,10 @@ LICENSE file.
     <maven.assembly.version>2.5.5</maven.assembly.version>
     <maven.dependency.version>2.10</maven.dependency.version>
 
+    <grpc.version>1.36.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
+    <protobuf.version>3.12.0</protobuf.version>
+    <protoc.version>3.12.0</protoc.version>
+
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <rocksdb.version>6.2.2</rocksdb.version>
     
@@ -119,7 +124,7 @@ LICENSE file.
     <!-- our internals -->
     <module>core</module>
     <module>binding-parent</module>
-    <module>distribution</module>
+    <!-- <module>distribution</module> -->
     <!-- all the datastore bindings, lex sorted please -->
   
     <module>rocksdb</module>
@@ -170,6 +175,24 @@ LICENSE file.
           <target>1.8</target>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.xolstice.maven.plugins</groupId>
+        <artifactId>protobuf-maven-plugin</artifactId>
+        <version>0.6.1</version>
+        <configuration>
+          <protocArtifact>com.google.protobuf:protoc:3.12.0:exe:${os.detected.classifier}</protocArtifact>
+          <pluginId>grpc-java</pluginId>
+          <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.36.0:exe:${os.detected.classifier}</pluginArtifact>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>compile</goal>
+              <goal>compile-custom</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
       <!-- <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
@@ -187,10 +210,17 @@ LICENSE file.
         </executions>
       </plugin> -->
     </plugins>
+      <extensions>
+        <extension>
+          <groupId>kr.motd.maven</groupId>
+          <artifactId>os-maven-plugin</artifactId>
+          <version>1.6.2</version>
+        </extension>
+      </extensions>
   </build>
+
   <profiles>
     <profile>
-      <!-- plugins needed to pass sonatype repo checks -->
       <id>ycsb-release</id>
       <properties>
         <doclint>none</doclint>
