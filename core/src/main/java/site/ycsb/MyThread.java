@@ -2,41 +2,38 @@ package site.ycsb;
 
 import java.util.concurrent.*;
 import java.io.*;
-import java.net.*;
+import io.grpc.Channel;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+
 /**
  * Custom thread with i/o streams and socket.
  */
 public class MyThread extends Thread {
-  private int seq = 0;
-  private Socket socket;
+  private Channel channel;
   private Runnable r;
   
 
-  public MyThread(Runnable r, String dest, int port) {
+  public MyThread(Runnable r, Channel channel) {
     this.r = r;
-
-    // init the socket and open up the streams
-    try {
-      this.socket = new Socket(InetAddress.getByName(dest), port);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+    this.channel = channel;
   }
 
   public void run() {
     this.r.run();
   }
 
-  public Socket getSocket() {
-    return this.socket;
+  public Channel getChannel() {
+    return this.channel;
   }
 
+  /*
   public void setSeq(int s) {
     this.seq = s;
   }
   
   public int incSeq() {
     return this.seq++;
-  }
+  }*/
 
 }

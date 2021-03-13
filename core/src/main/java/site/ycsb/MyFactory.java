@@ -1,23 +1,42 @@
 package site.ycsb;
 
+import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.*;
 import java.io.*;
+import io.grpc.Channel;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
 
 /**
  * ThreadFactory to generate threads with i/o stream.
  */
 public class MyFactory implements ThreadFactory {
-  private String dest;
-  private int port;
+  private String target;
+  private List<ManagedChannel> channels;
+  private int chan_idx;
+  private int counter;
 
-  public MyFactory(String dest, int port) {
-    this.dest = dest;
-    this.port = port;
+  public MyFactory(String target) {
+    this.target = target;
+    this.channels = new ArrayList<>();
+    this.chan_idx = -1;
+    this.counter = 0;
   }
 
   @Override
   public Thread newThread(Runnable r){
-    Thread newt = new MyThread(r, this.dest, this.port);
+    // create a new managedchannel per 100 threads
+    if (counter %100 == 0) {
+        channels.add(ManagedChannelBuilder.forTarget(this.target)
+            .usePlaintext()
+            .build());
+        this.chan_idx++;
+        System.out.println("built new chan no: " + this.chan_idx);
+    }
+    counter++;
+
+    Thread newt = new MyThread(r, this.channels.get(this.chan_idx));
     return newt;
   }
 }

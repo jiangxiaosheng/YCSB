@@ -16,10 +16,10 @@ class BatchOp implements Runnable {
   private boolean doTransaction;
   private boolean status;
   private final CountDownLatch loopLatch;
-  private int seq;
+  //private int seq;
 
   public BatchOp(Workload workload, DB db, int opcount, Object workloadstate,
-              String op, CountDownLatch loopLatch, int seq) {
+              String op, CountDownLatch loopLatch) {
     this.workload = workload;
     this.db = db;
     this.opcount = opcount;
@@ -27,32 +27,26 @@ class BatchOp implements Runnable {
     this.doTransaction = op.equals("transaction") ? true : false;
     this.loopLatch = loopLatch;
     // ((MyThread)Thread.currentThread()).setSeq(seq);
-    this.seq = seq;
+    //this.seq = seq;
 
   }
 
   public void run() {
-    ((MyThread)Thread.currentThread()).setSeq(seq);
-    Socket s = ((MyThread)Thread.currentThread()).getSocket();
-    try {
+    //((MyThread)Thread.currentThread()).setSeq(seq);
+    // try {
       if (doTransaction) {
         for(int i = 0; i < opcount; i++) {
-          ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
-          BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
-          status = workload.doTransaction(db, workloadstate, out, in);
+          status = workload.doTransaction(db, workloadstate);
         }
       } else {
         for(int i = 0; i < opcount; i++) {
-          ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
-          BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
-          status = workload.doInsert(db, workloadstate, out, in);
+          status = workload.doInsert(db, workloadstate);
           // System.out.println("status: " + status);
         }
       }
-    } catch(IOException e) {
+    /*} catch(IOException e) {
       e.printStackTrace();
-    }
-
+    }*/
     loopLatch.countDown();
   }
 }
