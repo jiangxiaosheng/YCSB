@@ -230,51 +230,17 @@ public class RocksDBClient extends DB {
   @Override
   public Status read(final String table, final String key, final Set<String> fields,
       final Map<String, ByteIterator> result) {
-    Status ret = Status.ERROR;
+     try {
+        SimpleClient client = new SimpleClient(((MyThread)Thread.currentThread()).getChannel());
+        CountDownLatch finishLatch = client.read(key); 
+        if (!finishLatch.await(1, TimeUnit.MINUTES)) {
+            System.out.println("simple client can not finish within 1 minutes");
+	}
+     } catch (InterruptedException e) {
+        e.printStackTrace();
+     }
+    return Status.OK;
 
-    Socket socket;
-    ObjectOutputStream out;
-    BufferedReader in;
-
-    ReplicatorOp op = new ReplicatorOp(table, key, null, new String("read"));
-    Gson gson = new Gson();
-
-    try {
-      //add tcp socket for communication
-      socket = new Socket(InetAddress.getByName("127.0.0.1"), 1234);
-      out = new ObjectOutputStream(socket.getOutputStream());
-      in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-      //add line break to read entries line by line
-      String json = gson.toJson(op) + "\n";
-      out.writeObject(json);
-      // listeners.add(new GenericListener("read", result));
-      ret = Status.OK;
-      String str;
-
-      while ((str = in.readLine()) != null) {
-        if (str.length() == 0) {
-          System.out.println("end of stream");
-        } else if (str.length() < 7) {
-          System.out.println(str + " is not a valid operation");
-        } else {
-          //TODO: error handling
-          str = "{" + str.split("\\{", 2)[1];
-          //de-serialize json string and handle operation
-          Reply reply = gson.fromJson(str, Reply.class);
-          deserializeValues(reply.getValues(), fields, result);
-          break;
-        }
-      }
-      in.close();
-      out.close();
-      socket.close();
-      ret = Status.OK;
-    } catch (IOException e) {
-      e.printStackTrace();
-      // ret = Status.ERROR;
-    } finally {
-      return ret;
-    }
   }
 
 
@@ -424,7 +390,21 @@ public class RocksDBClient extends DB {
 
   @Override
   public Status insert(final String table, final String key, final Map<String, ByteIterator> values) {
-    return Status.NOT_IMPLEMENTED;
+     try {
+        SimpleClient client = new SimpleClient(((MyThread)Thread.currentThread()).getChannel());
+        CountDownLatch finishLatch = client.insert(key, new String(serializeValues(values))); 
+        if (!finishLatch.await(1, TimeUnit.MINUTES)) {
+            System.out.println("simple client can not finish within 1 minutes");
+	}
+     } catch (IOException | InterruptedException e) {
+        e.printStackTrace();
+     }/*
+     } finally {
+        try {
+	   channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {e.printStackTrace();}
+     }*/
+    return Status.OK;
   }
 
   @Override
@@ -436,11 +416,11 @@ public class RocksDBClient extends DB {
   	    .build();
      try {
         SimpleClient client = new SimpleClient(channel);
-        CountDownLatch finishLatch = client.insert(); 
+        CountDownLatch finishLatch = client.insert(key, new String(serializeValues(values))); 
         if (!finishLatch.await(1, TimeUnit.MINUTES)) {
             System.out.println("simple client can not finish within 1 minutes");
 	}
-     } catch (InterruptedException e) {
+     } catch (IOException | InterruptedException e) {
         e.printStackTrace();
      } finally {
         try {
@@ -448,7 +428,8 @@ public class RocksDBClient extends DB {
         } catch (InterruptedException e) {e.printStackTrace();}
      }
 
-    Status ret = Status.ERROR;
+    return Status.OK;
+    /*
     try {
       ReplicatorOp op = new ReplicatorOp(table, key, serializeValues(values), new String("insert"));
       Reply reply = iostream(op, out, in);
@@ -457,7 +438,7 @@ public class RocksDBClient extends DB {
       e.printStackTrace();
     } finally {
       return ret;
-    }
+    } */
   }
 
   @Override
