@@ -25,7 +25,7 @@ public class SimpleClient {
         asyncStub = RubbleKvStoreServiceGrpc.newStub(channel);
     }
 
-    public CountDownLatch insert() {
+    public CountDownLatch insert(String k, String v) {
         PutRequest request;
         final CountDownLatch finishLatch = new CountDownLatch(1);
         // StreamObserver<PutReply> replyObserver = new StreamObserver<PutReply>() {
@@ -34,7 +34,7 @@ public class SimpleClient {
             asyncStub.put( new StreamObserver<PutReply>(){
                 @Override
                 public void onNext(PutReply reply) {
-                    System.out.println("reply: " + reply);
+                    System.out.println("put reply: " + reply);
                 }
 
                 @Override
@@ -51,14 +51,10 @@ public class SimpleClient {
             });
 
         try {
-            int num_of_kv = 100;
-            for (int i = 0; i < num_of_kv; i++) {
-                request = PutRequest.newBuilder().setKey("key " + i).setValue("value "+i).build();
+                request = PutRequest.newBuilder().setKey("key " + k).setValue("value "+v).build();
                 requestObserver.onNext(request);
-                System.out.println("req " + i + " sent");
-            }
-        
-        logger.info("end of insert");
+                System.out.println("req " + k + " sent");
+                logger.info("end of insert");
         } catch (RuntimeException e) {
             // Cancel RPC
             requestObserver.onError(e);
@@ -71,7 +67,46 @@ public class SimpleClient {
         return finishLatch;
     }
 
-    /*
+    public CountDownLatch read(String k) {
+        GetRequest request;
+        final CountDownLatch finishLatch = new CountDownLatch(1);
+        StreamObserver<GetRequest> requestObserver =
+            asyncStub.get( new StreamObserver<GetReply>(){
+                @Override
+                public void onNext(GetReply reply) {
+                    //System.out.println("get reply: " + reply);
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                    System.err.println("get failed " + Status.fromThrowable(t));
+                    finishLatch.countDown();
+                }
+
+                @Override
+                public void onCompleted() {
+                    //System.out.println("done with get reply");
+                    finishLatch.countDown();
+                }
+            });
+
+        try {
+                request = GetRequest.newBuilder().setKey("key " + k).build();
+                requestObserver.onNext(request);
+                //System.out.println("get " + k + " sent");
+                //logger.info("end of read");
+        } catch (RuntimeException e) {
+            // Cancel RPC
+            requestObserver.onError(e);
+            throw e;
+        }
+        // Mark the end of requests
+        requestObserver.onCompleted();
+
+        // return the latch while receiving happens asynchronously
+        return finishLatch;
+    }
+    /* test driver for SimpleClient
     public static void main(String[] args) throws Exception{
         String user = "world";
         // Access a service running on the local machine on port 50050
