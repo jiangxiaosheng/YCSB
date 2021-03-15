@@ -17,6 +17,7 @@
 
 package site.ycsb.db.rocksdb;
 
+import rubble.*;
 import site.ycsb.*;
 import site.ycsb.Status;
 import net.jcip.annotations.GuardedBy;
@@ -212,6 +213,7 @@ public class RocksDBClient extends DB {
   @Override
   public Status read(final String table, final String key, final Set<String> fields,
       final Map<String, ByteIterator> result) {
+    /*
     try {
       if (!COLUMN_FAMILIES.containsKey(table)) {
         createColumnFamily(table);
@@ -227,7 +229,11 @@ public class RocksDBClient extends DB {
     } catch(final RocksDBException e) {
       LOGGER.error(e.getMessage(), e);
       return Status.ERROR;
-    }
+    }*/
+    MyThread ct = (MyThread)Thread.currentThread();
+    SimpleClient client = new SimpleClient(((MyThread)Thread.currentThread()).getChannel());
+    String reply = client.sync(key);
+    return Status.OK;
   }
 
   @Override
