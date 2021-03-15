@@ -27,7 +27,7 @@ public class MyFactory implements ThreadFactory {
   @Override
   public Thread newThread(Runnable r){
     // create a new managedchannel per 100 threads
-    if (counter %100 == 0) {
+    if (counter %50 == 0) {
         channels.add(ManagedChannelBuilder.forTarget(this.target)
             .usePlaintext()
             .build());

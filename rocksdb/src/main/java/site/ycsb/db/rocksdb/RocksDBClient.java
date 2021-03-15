@@ -230,15 +230,16 @@ public class RocksDBClient extends DB {
   @Override
   public Status read(final String table, final String key, final Set<String> fields,
       final Map<String, ByteIterator> result) {
-     try {
+     // try {
         SimpleClient client = new SimpleClient(((MyThread)Thread.currentThread()).getChannel());
-        CountDownLatch finishLatch = client.read(key); 
+        /*CountDownLatch finishLatch = client.read(key); 
         if (!finishLatch.await(1, TimeUnit.MINUTES)) {
             System.out.println("simple client can not finish within 1 minutes");
-	}
-     } catch (InterruptedException e) {
+	}*/
+        String reply = client.sync(key);
+    /* } catch (InterruptedException e) {
         e.printStackTrace();
-     }
+     }*/
     return Status.OK;
 
   }

@@ -20,9 +20,11 @@ public class SimpleClient {
 
     private static final Logger logger = Logger.getLogger(SimpleClient.class.getName());
     private final RubbleKvStoreServiceGrpc.RubbleKvStoreServiceStub asyncStub;
+    private final RubbleKvStoreServiceGrpc.RubbleKvStoreServiceBlockingStub blockingStub; 
 
     public SimpleClient(Channel channel) {
         asyncStub = RubbleKvStoreServiceGrpc.newStub(channel);
+        blockingStub = RubbleKvStoreServiceGrpc.newBlockingStub(channel);
     }
 
     public CountDownLatch insert(String k, String v) {
@@ -65,6 +67,18 @@ public class SimpleClient {
 
         // return the latch while receiving happens asynchronously
         return finishLatch;
+    }
+    
+    public String sync(String k) {
+        SyncRequest request = SyncRequest.newBuilder().setArgs(k).build();
+        SyncReply response;
+    	try {
+      		response = blockingStub.sync(request);
+                return response.getMessage();		
+    	} catch (StatusRuntimeException e) {
+      		e.printStackTrace();
+		return "failure";
+    	}
     }
 
     public CountDownLatch read(String k) {
