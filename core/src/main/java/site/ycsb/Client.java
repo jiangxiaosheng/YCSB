@@ -32,6 +32,8 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
 
 /**
  * Turn seconds remaining into more useful units.
@@ -331,14 +333,39 @@ public final class Client {
 
     try (final TraceScope span = tracer.newScope(CLIENT_WORKLOAD_SPAN)) {
 
-      final Map<Thread, ClientThread> threads = new HashMap<>(threadcount);
-      for (ClientThread client : clients) {
-        threads.put(new Thread(tracer.wrap(client, "ClientThread")), client);
-      }
+      final Map<MyThread, ClientThread> threads = new HashMap<>(threadcount);
+      String targetAddr = "128.110.153.94:50050";
+      /*
+      List<ManagedChannel> channels = new ArrayList<>();
+      int chanIdx = -1;
 
+      for(int i=0; i<clients.size(); i++) {
+        if(i%64 == 0) {
+          channels.add(ManagedChannelBuilder.forTarget(targetAddr)
+                                             .usePlaintext()
+                                             .build());
+          chanIdx++;
+       
+        }
+        ClientThread client = clients.get(i);
+        threads.put(new MyThread(tracer.wrap(client, "ClientThread"), channels.get(chanIdx)), client);
+      } */
+
+      ManagedChannel chan = ManagedChannelBuilder.forTarget(targetAddr).usePlaintext().build();
+      List<ManagedChannel> chans = new ArrayList<>();
+      chans.add(chan);
+      int idx = 0;
+      for(ClientThread client: clients) {
+        threads.put(new MyThread(tracer.wrap(client, "ClientThread"), chan), client);
+        idx++;
+        if (idx >0 && idx%64==0) {
+          chan = ManagedChannelBuilder.forTarget(targetAddr).usePlaintext().build();
+          chans.add(chan);
+        }
+      }
       st = System.currentTimeMillis();
 
-      for (Thread t : threads.keySet()) {
+      for (MyThread t : threads.keySet()) {
         t.start();
       }
 
@@ -349,7 +376,7 @@ public final class Client {
 
       opsDone = 0;
 
-      for (Map.Entry<Thread, ClientThread> entry : threads.entrySet()) {
+      for (Map.Entry<MyThread, ClientThread> entry : threads.entrySet()) {
         try {
           entry.getKey().join();
           opsDone += entry.getValue().getOpsDone();
