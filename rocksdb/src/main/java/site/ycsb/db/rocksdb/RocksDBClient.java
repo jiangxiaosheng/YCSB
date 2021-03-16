@@ -232,7 +232,11 @@ public class RocksDBClient extends DB {
     }*/
     MyThread ct = (MyThread)Thread.currentThread();
     SimpleClient client = new SimpleClient(((MyThread)Thread.currentThread()).getChannel());
+    long startTime = System.nanoTime();
+    // System.out.println("Thread ID:  " + ct.getId() + " start at " + startTime);
     String reply = client.sync(key);
+    // System.out.println("Thread ID: " + ct.getId() + " end with latency " + (System.nanoTime() - startTime) + " ns");
+    ct.updateAvg(System.nanoTime() - startTime);
     return Status.OK;
   }
 

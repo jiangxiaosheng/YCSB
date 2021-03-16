@@ -356,7 +356,7 @@ public final class Client {
       chans.add(chan);
       int idx = 0;
       for(ClientThread client: clients) {
-        threads.put(new MyThread(tracer.wrap(client, "ClientThread"), chan), client);
+        threads.put(new MyThread(tracer.wrap(client, "ClientThread"), chan, client.getOpsTodo()), client);
         idx++;
         if (idx >0 && idx%64==0) {
           chan = ManagedChannelBuilder.forTarget(targetAddr).usePlaintext().build();
