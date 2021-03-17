@@ -334,7 +334,8 @@ public final class Client {
     try (final TraceScope span = tracer.newScope(CLIENT_WORKLOAD_SPAN)) {
 
       final Map<MyThread, ClientThread> threads = new HashMap<>(threadcount);
-      String targetAddr = "128.110.153.94:50050";
+      // String targetAddr = "128.110.153.94:50050";
+      String targetAddr = "localhost:50051";
       /*
       List<ManagedChannel> channels = new ArrayList<>();
       int chanIdx = -1;

@@ -17,7 +17,7 @@
 
 package site.ycsb.db.rocksdb;
 
-import rubble.*;
+import rubblejava.*;
 import site.ycsb.*;
 import site.ycsb.Status;
 import net.jcip.annotations.GuardedBy;
@@ -33,7 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
+import java.util.concurrent.CountDownLatch;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
@@ -234,9 +234,16 @@ public class RocksDBClient extends DB {
     SimpleClient client = new SimpleClient(((MyThread)Thread.currentThread()).getChannel());
     long startTime = System.nanoTime();
     // System.out.println("Thread ID:  " + ct.getId() + " start at " + startTime);
-    String reply = client.sync(key);
+    CountDownLatch latch = client.doOp(key, 1, 0);
+    try {
+      latch.await();
+      System.out.println("returned from latch");
+    } catch(InterruptedException e) {
+      e.printStackTrace();
+    }
+    // String reply = client.sync(key);
     // System.out.println("Thread ID: " + ct.getId() + " end with latency " + (System.nanoTime() - startTime) + " ns");
-    ct.updateAvg(System.nanoTime() - startTime);
+    //ct.updateAvg(System.nanoTime() - startTime);
     return Status.OK;
   }
 

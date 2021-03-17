@@ -32,10 +32,13 @@ public class MyThread extends Thread {
   
   public void updateAvg(long latency) {
     this.opcount++;
+    /*if (this.avg * 2 < latency && this.avg > 0) {
+      System.out.println("long tail latency: " + latency + " ns - average: " + this.avg);
+    }
     this.avg = (this.opcount-1)*this.avg / this.opcount + latency/this.opcount;
     if (this.opcount == this.target) {
       this.printAvg();
-    }
+    }*/
   }
 
   public void printAvg() {
