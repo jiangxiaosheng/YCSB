@@ -231,10 +231,10 @@ public class RocksDBClient extends DB {
       return Status.ERROR;
     }*/
     MyThread ct = (MyThread)Thread.currentThread();
-    SimpleClient client = new SimpleClient(((MyThread)Thread.currentThread()).getChannel());
+    SimpleClient client = new SimpleClient(ct.getChannel());
     long startTime = System.nanoTime();
     // System.out.println("Thread ID:  " + ct.getId() + " start at " + startTime);
-    CountDownLatch latch = client.doOp(key, 1, 0);
+    CountDownLatch latch = client.doOp(key, "", 1, 0);
     try {
       latch.await();
       System.out.println("returned from latch");
@@ -307,6 +307,7 @@ public class RocksDBClient extends DB {
 
   @Override
   public Status insert(final String table, final String key, final Map<String, ByteIterator> values) {
+    /*
     try {
       if (!COLUMN_FAMILIES.containsKey(table)) {
         createColumnFamily(table);
@@ -319,7 +320,18 @@ public class RocksDBClient extends DB {
     } catch(final RocksDBException | IOException e) {
       LOGGER.error(e.getMessage(), e);
       return Status.ERROR;
+    }*/
+    MyThread ct = (MyThread)Thread.currentThread();
+    SimpleClient client = new SimpleClient(ct.getChannel());
+    long startTime = System.nanoTime();
+    try {
+      CountDownLatch latch = client.doOp(key, new String(serializeValues(values)), 2, 1);
+      latch.await();
+      System.out.println("returned from latch [PUT]");
+    } catch(IOException | InterruptedException e) {
+      e.printStackTrace();
     }
+    return Status.OK;
   }
 
   @Override
