@@ -334,8 +334,8 @@ public final class Client {
     try (final TraceScope span = tracer.newScope(CLIENT_WORKLOAD_SPAN)) {
 
       final Map<MyThread, ClientThread> threads = new HashMap<>(threadcount);
-      // String targetAddr = "128.110.153.94:50050";
-      String targetAddr = "localhost:50051";
+      String targetAddr = "128.110.153.114:50051";
+      // String targetAddr = "localhost:50051";
 
       int numChan = 8;
       List<ManagedChannel> chans = new ArrayList<>();
@@ -349,6 +349,8 @@ public final class Client {
         idx++;
       }
       st = System.currentTimeMillis();
+      
+      // insert gRPC listening service here
 
       for (MyThread t : threads.keySet()) {
         t.start();
@@ -363,6 +365,7 @@ public final class Client {
 
       for (Map.Entry<MyThread, ClientThread> entry : threads.entrySet()) {
         try {
+          // entry.getKey().waitLatch();
           entry.getKey().join();
           opsDone += entry.getValue().getOpsDone();
         } catch (InterruptedException ignored) {

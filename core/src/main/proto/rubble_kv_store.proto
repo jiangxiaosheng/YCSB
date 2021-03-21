@@ -16,8 +16,6 @@ service RubbleKvStoreService {
   // perform a db operation (CRUD)
   rpc DoOp(stream Op) returns (stream OpReply){}
   
-  // rpc call for ycsb to listen on reply
-  rpc ReplyOp(stream OpReply) returns (Op){}
 }
 
 // operation to perform on a db

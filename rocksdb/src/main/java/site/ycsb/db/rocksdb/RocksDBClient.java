@@ -231,19 +231,7 @@ public class RocksDBClient extends DB {
       return Status.ERROR;
     }*/
     MyThread ct = (MyThread)Thread.currentThread();
-    SimpleClient client = new SimpleClient(ct.getChannel());
-    long startTime = System.nanoTime();
-    // System.out.println("Thread ID:  " + ct.getId() + " start at " + startTime);
-    CountDownLatch latch = client.doOp(key, "", 1, 0);
-    try {
-      latch.await();
-      System.out.println("returned from latch");
-    } catch(InterruptedException e) {
-      e.printStackTrace();
-    }
-    // String reply = client.sync(key);
-    // System.out.println("Thread ID: " + ct.getId() + " end with latency " + (System.nanoTime() - startTime) + " ns");
-    //ct.updateAvg(System.nanoTime() - startTime);
+    ct.onNext(key, "", 1, 0);
     return Status.OK;
   }
 
@@ -322,14 +310,10 @@ public class RocksDBClient extends DB {
       return Status.ERROR;
     }*/
     MyThread ct = (MyThread)Thread.currentThread();
-    SimpleClient client = new SimpleClient(ct.getChannel());
-    long startTime = System.nanoTime();
     try {
-      CountDownLatch latch = client.doOp(key, new String(serializeValues(values)), 2, 1);
-      latch.await();
-      System.out.println("returned from latch [PUT]");
-    } catch(IOException | InterruptedException e) {
-      e.printStackTrace();
+      ct.onNext(key, new String(serializeValues(values)), 2, 1);
+    } catch(IOException e) {
+      LOGGER.error(e.getMessage(), e);
     }
     return Status.OK;
   }
