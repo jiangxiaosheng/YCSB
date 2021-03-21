@@ -336,33 +336,17 @@ public final class Client {
       final Map<MyThread, ClientThread> threads = new HashMap<>(threadcount);
       // String targetAddr = "128.110.153.94:50050";
       String targetAddr = "localhost:50051";
-      /*
-      List<ManagedChannel> channels = new ArrayList<>();
-      int chanIdx = -1;
 
-      for(int i=0; i<clients.size(); i++) {
-        if(i%64 == 0) {
-          channels.add(ManagedChannelBuilder.forTarget(targetAddr)
-                                             .usePlaintext()
-                                             .build());
-          chanIdx++;
-       
-        }
-        ClientThread client = clients.get(i);
-        threads.put(new MyThread(tracer.wrap(client, "ClientThread"), channels.get(chanIdx)), client);
-      } */
-
-      ManagedChannel chan = ManagedChannelBuilder.forTarget(targetAddr).usePlaintext().build();
+      int numChan = 8;
       List<ManagedChannel> chans = new ArrayList<>();
-      chans.add(chan);
+      for(int i = 0; i<numChan; i++) {
+        chans.add(ManagedChannelBuilder.forTarget(targetAddr).usePlaintext().build());
+        
+      }
       int idx = 0;
       for(ClientThread client: clients) {
-        threads.put(new MyThread(tracer.wrap(client, "ClientThread"), chan, client.getOpsTodo()), client);
+        threads.put(new MyThread(tracer.wrap(client, "ClientThread"), chans.get(idx%numChan), client.getOpsTodo()), client);
         idx++;
-        if (idx >0 && idx%64==0) {
-          chan = ManagedChannelBuilder.forTarget(targetAddr).usePlaintext().build();
-          chans.add(chan);
-        }
       }
       st = System.currentTimeMillis();
 
