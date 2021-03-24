@@ -156,6 +156,10 @@ public final class Client {
    */
   private static StatusThread statusthread = null;
 
+  /* destination for gRPC */
+  // private static String destination = "";
+  
+
   // HTrace integration related constants.
 
   /**
@@ -277,7 +281,9 @@ public final class Client {
 
   @SuppressWarnings("unchecked")
   public static void main(String[] args) {
+    // String destination = "";
     Properties props = parseArguments(args);
+    // System.out.println("destination: " + destination);
 
     boolean status = Boolean.valueOf(props.getProperty(STATUS_PROPERTY, String.valueOf(false)));
     String label = props.getProperty(LABEL_PROPERTY, "");
@@ -334,8 +340,8 @@ public final class Client {
     try (final TraceScope span = tracer.newScope(CLIENT_WORKLOAD_SPAN)) {
 
       final Map<MyThread, ClientThread> threads = new HashMap<>(threadcount);
-      String targetAddr = "128.110.153.114:50051";
-      // String targetAddr = "localhost:50051";
+      // String targetAddr = "128.110.153.114:50051";
+      String targetAddr = "128.110.155.63:50051";
 
       int numChan = 8;
       List<ManagedChannel> chans = new ArrayList<>();
@@ -649,6 +655,16 @@ public final class Client {
         String name = args[argindex].substring(0, eq);
         String value = args[argindex].substring(eq + 1);
         props.put(name, value);
+        argindex++;
+      } else if (args[argindex].compareTo("-dest") == 0) {
+        // add the gRPC call destination as input
+        argindex++;
+        if (argindex >= args.length) {
+          usageMessage();
+          System.out.println("Missing argument value for -dest");
+          System.exit(0);
+        }
+        // destination = args[argindex];
         argindex++;
       } else {
         usageMessage();

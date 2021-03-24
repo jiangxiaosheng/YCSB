@@ -43,18 +43,18 @@ public class MyThread extends Thread {
       @Override
       public void onNext(OpReply reply) {
         OpReply r  = reply;
-        // System.out.println("reply: " + reply.getKey() + "\n value: " + reply.getValue());
+        // System.out.println("reply: " + reply.getKey() + "status: " + reply.getStatus());
       }
 
       @Override
       public void onError(Throwable t) {
-        System.err.println("get failed " + Status.fromThrowable(t));
+        // System.err.println("get failed " + Status.fromThrowable(t));
         finishLatch.countDown();
       }
 
       @Override
       public void onCompleted() {
-        System.out.println("done with reply");
+        // System.out.println("done with reply");
         finishLatch.countDown();
       }
     });
