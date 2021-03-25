@@ -350,8 +350,9 @@ public final class Client {
         
       }
       int idx = 0;
+      int batch_size = 10;
       for(ClientThread client: clients) {
-        threads.put(new MyThread(tracer.wrap(client, "ClientThread"), chans.get(idx%numChan), client.getOpsTodo()), client);
+        threads.put(new MyThread(tracer.wrap(client, "ClientThread"), chans.get(idx%numChan), client.getOpsTodo(), batch_size), client);
         idx++;
       }
       st = System.currentTimeMillis();

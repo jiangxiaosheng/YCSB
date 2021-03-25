@@ -15,11 +15,14 @@ service RubbleKvStoreService {
 
   // perform a db operation (CRUD)
   rpc DoOp(stream Op) returns (stream OpReply){}
-  
+}
+
+message Op {
+  repeated SingleOp ops = 1;
 }
 
 // operation to perform on a db
-message Op{
+message SingleOp{
   
   string key = 1;
   string value = 2;
@@ -35,7 +38,11 @@ message Op{
   OpType type = 4;
 }
 
-message OpReply{
+message OpReply {
+  repeated SingleOpReply replies = 1;
+}
+
+message SingleOpReply{
   bool ok = 1;
   string key = 2;
   string value = 3;
