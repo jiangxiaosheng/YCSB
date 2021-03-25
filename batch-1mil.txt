@@ -1,0 +1,1220 @@
+/usr/bin/java  -classpath /mnt/sdb/YCSB/conf:/mnt/sdb/YCSB/core/target/core-0.18.0-SNAPSHOT.jar:/mnt/sdb/YCSB/rocksdb/target/rocksdb-binding-0.18.0-SNAPSHOT.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/HdrHistogram-2.1.4.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/animal-sniffer-annotations-1.19.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/annotations-4.1.1.4.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/checker-compat-qual-2.5.5.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/error_prone_annotations-2.4.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/failureaccess-1.0.1.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-api-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-context-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-core-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-netty-shaded-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-protobuf-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-protobuf-lite-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-stub-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/gson-2.8.6.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/guava-30.0-android.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/htrace-core4-4.1.0-incubating.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/j2objc-annotations-1.3.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/javax.annotation-api-1.3.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/jcip-annotations-1.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/jsr305-3.0.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/perfmark-api-0.23.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/proto-google-common-protos-2.0.1.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/protobuf-java-3.12.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/rocksdbjni-6.2.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/slf4j-api-1.7.25.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/slf4j-simple-1.7.25.jar site.ycsb.Client -t -db site.ycsb.db.rocksdb.RocksDBClient -s -P workloads/workload1 -p rocksdb.dir=/users/root/test -threads 1
+count: 10
+reply: user6040796373868987634status: OKthread: 31
+thread processed counts: 1000000target: 1000000
+returned from latch for thread 29
+[OVERALL], RunTime(ms), 61281
+[OVERALL], Throughput(ops/sec), 16318.271568675445
+[TOTAL_GCS_G1_Young_Generation], Count, 10
+[TOTAL_GC_TIME_G1_Young_Generation], Time(ms), 116
+[TOTAL_GC_TIME_%_G1_Young_Generation], Time(%), 0.18929195019663517
+[TOTAL_GCS_G1_Old_Generation], Count, 0
+[TOTAL_GC_TIME_G1_Old_Generation], Time(ms), 0
+[TOTAL_GC_TIME_%_G1_Old_Generation], Time(%), 0.0
+[TOTAL_GCs], Count, 10
+[TOTAL_GC_TIME], Time(ms), 116
+[TOTAL_GC_TIME_%], Time(%), 0.18929195019663517
+[READ], Operations, 1000000
+[READ], AverageLatency(us), 60.668544
+[READ], MinLatency(us), 0
+[READ], MaxLatency(us), 60653567
+[READ], 95thPercentileLatency(us), 0
+[READ], 99thPercentileLatency(us), 0
+[READ], Return=OK, 1000000
+[CLEANUP], Operations, 1
+[CLEANUP], AverageLatency(us), 2093.0
+[CLEANUP], MinLatency(us), 2092
+[CLEANUP], MaxLatency(us), 2093
+[CLEANUP], 95thPercentileLatency(us), 2093
+[CLEANUP], 99thPercentileLatency(us), 2093
+/usr/bin/java  -classpath /mnt/sdb/YCSB/conf:/mnt/sdb/YCSB/core/target/core-0.18.0-SNAPSHOT.jar:/mnt/sdb/YCSB/rocksdb/target/rocksdb-binding-0.18.0-SNAPSHOT.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/HdrHistogram-2.1.4.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/animal-sniffer-annotations-1.19.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/annotations-4.1.1.4.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/checker-compat-qual-2.5.5.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/error_prone_annotations-2.4.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/failureaccess-1.0.1.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-api-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-context-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-core-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-netty-shaded-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-protobuf-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-protobuf-lite-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-stub-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/gson-2.8.6.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/guava-30.0-android.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/htrace-core4-4.1.0-incubating.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/j2objc-annotations-1.3.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/javax.annotation-api-1.3.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/jcip-annotations-1.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/jsr305-3.0.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/perfmark-api-0.23.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/proto-google-common-protos-2.0.1.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/protobuf-java-3.12.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/rocksdbjni-6.2.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/slf4j-api-1.7.25.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/slf4j-simple-1.7.25.jar site.ycsb.Client -t -db site.ycsb.db.rocksdb.RocksDBClient -s -P workloads/workload1 -p rocksdb.dir=/users/root/test -threads 2
+count: 10
+reply: user3774884737229873416status: OKthread: 31
+thread processed counts: 500000target: 500000
+returned from latch for thread 29
+count: 10
+reply: user625380677203564288status: OKthread: 31
+thread processed counts: 500000target: 500000
+returned from latch for thread 33
+[OVERALL], RunTime(ms), 33175
+[OVERALL], Throughput(ops/sec), 30143.18010550113
+[TOTAL_GCS_G1_Young_Generation], Count, 7
+[TOTAL_GC_TIME_G1_Young_Generation], Time(ms), 84
+[TOTAL_GC_TIME_%_G1_Young_Generation], Time(%), 0.2532027128862095
+[TOTAL_GCS_G1_Old_Generation], Count, 0
+[TOTAL_GC_TIME_G1_Old_Generation], Time(ms), 0
+[TOTAL_GC_TIME_%_G1_Old_Generation], Time(%), 0.0
+[TOTAL_GCs], Count, 7
+[TOTAL_GC_TIME], Time(ms), 84
+[TOTAL_GC_TIME_%], Time(%), 0.2532027128862095
+[READ], Operations, 1000000
+[READ], AverageLatency(us), 64.525924
+[READ], MinLatency(us), 0
+[READ], MaxLatency(us), 32161791
+[READ], 95thPercentileLatency(us), 4
+[READ], 99thPercentileLatency(us), 8
+[READ], Return=OK, 1000000
+[CLEANUP], Operations, 2
+[CLEANUP], AverageLatency(us), 772.0
+[CLEANUP], MinLatency(us), 4
+[CLEANUP], MaxLatency(us), 1540
+[CLEANUP], 95thPercentileLatency(us), 1540
+[CLEANUP], 99thPercentileLatency(us), 1540
+/usr/bin/java  -classpath /mnt/sdb/YCSB/conf:/mnt/sdb/YCSB/core/target/core-0.18.0-SNAPSHOT.jar:/mnt/sdb/YCSB/rocksdb/target/rocksdb-binding-0.18.0-SNAPSHOT.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/HdrHistogram-2.1.4.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/animal-sniffer-annotations-1.19.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/annotations-4.1.1.4.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/checker-compat-qual-2.5.5.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/error_prone_annotations-2.4.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/failureaccess-1.0.1.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-api-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-context-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-core-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-netty-shaded-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-protobuf-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-protobuf-lite-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-stub-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/gson-2.8.6.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/guava-30.0-android.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/htrace-core4-4.1.0-incubating.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/j2objc-annotations-1.3.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/javax.annotation-api-1.3.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/jcip-annotations-1.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/jsr305-3.0.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/perfmark-api-0.23.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/proto-google-common-protos-2.0.1.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/protobuf-java-3.12.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/rocksdbjni-6.2.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/slf4j-api-1.7.25.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/slf4j-simple-1.7.25.jar site.ycsb.Client -t -db site.ycsb.db.rocksdb.RocksDBClient -s -P workloads/workload1 -p rocksdb.dir=/users/root/test -threads 4
+count: 10
+reply: user9120635536106541759status: OKthread: 46
+thread processed counts: 250000target: 250000
+returned from latch for thread 39
+count: 10
+reply: user7329856889846409192status: OKthread: 46
+thread processed counts: 250000target: 250000
+returned from latch for thread 29
+count: 10
+reply: user7611998586867326551status: OKthread: 31
+thread processed counts: 250000target: 250000
+returned from latch for thread 36
+count: 10
+reply: user1585822309114934188status: OKthread: 46
+thread processed counts: 250000target: 250000
+returned from latch for thread 33
+[OVERALL], RunTime(ms), 19464
+[OVERALL], Throughput(ops/sec), 51376.90094533498
+[TOTAL_GCS_G1_Young_Generation], Count, 9
+[TOTAL_GC_TIME_G1_Young_Generation], Time(ms), 163
+[TOTAL_GC_TIME_%_G1_Young_Generation], Time(%), 0.8374434854089601
+[TOTAL_GCS_G1_Old_Generation], Count, 0
+[TOTAL_GC_TIME_G1_Old_Generation], Time(ms), 0
+[TOTAL_GC_TIME_%_G1_Old_Generation], Time(%), 0.0
+[TOTAL_GCs], Count, 9
+[TOTAL_GC_TIME], Time(ms), 163
+[TOTAL_GC_TIME_%], Time(%), 0.8374434854089601
+[READ], Operations, 1000000
+[READ], AverageLatency(us), 73.354898
+[READ], MinLatency(us), 0
+[READ], MaxLatency(us), 18497535
+[READ], 95thPercentileLatency(us), 4
+[READ], 99thPercentileLatency(us), 9
+[READ], Return=OK, 1000000
+[CLEANUP], Operations, 4
+[CLEANUP], AverageLatency(us), 359.75
+[CLEANUP], MinLatency(us), 4
+[CLEANUP], MaxLatency(us), 1426
+[CLEANUP], 95thPercentileLatency(us), 1426
+[CLEANUP], 99thPercentileLatency(us), 1426
+/usr/bin/java  -classpath /mnt/sdb/YCSB/conf:/mnt/sdb/YCSB/core/target/core-0.18.0-SNAPSHOT.jar:/mnt/sdb/YCSB/rocksdb/target/rocksdb-binding-0.18.0-SNAPSHOT.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/HdrHistogram-2.1.4.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/animal-sniffer-annotations-1.19.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/annotations-4.1.1.4.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/checker-compat-qual-2.5.5.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/error_prone_annotations-2.4.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/failureaccess-1.0.1.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-api-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-context-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-core-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-netty-shaded-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-protobuf-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-protobuf-lite-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-stub-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/gson-2.8.6.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/guava-30.0-android.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/htrace-core4-4.1.0-incubating.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/j2objc-annotations-1.3.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/javax.annotation-api-1.3.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/jcip-annotations-1.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/jsr305-3.0.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/perfmark-api-0.23.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/proto-google-common-protos-2.0.1.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/protobuf-java-3.12.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/rocksdbjni-6.2.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/slf4j-api-1.7.25.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/slf4j-simple-1.7.25.jar site.ycsb.Client -t -db site.ycsb.db.rocksdb.RocksDBClient -s -P workloads/workload1 -p rocksdb.dir=/users/root/test -threads 8
+count: 10
+reply: user874774797295399335status: OKthread: 38
+thread processed counts: 125000target: 125000
+returned from latch for thread 39
+count: 10
+reply: user5105325585513030265status: OKthread: 54
+thread processed counts: 125000target: 125000
+returned from latch for thread 55
+count: 10
+reply: user1718439558813122234status: OKthread: 38
+thread processed counts: 125000target: 125000
+returned from latch for thread 47
+count: 10
+reply: user273387264645467027status: OKthread: 35
+thread processed counts: 125000target: 125000
+returned from latch for thread 51
+count: 10
+reply: user6943751701772957532status: OKthread: 38
+thread processed counts: 125000target: 125000
+returned from latch for thread 33
+count: 10
+reply: user2459847089547922687status: OKthread: 54
+thread processed counts: 125000target: 125000
+returned from latch for thread 36
+count: 10
+reply: user3483684044877250186status: OKthread: 54
+thread processed counts: 125000target: 125000
+returned from latch for thread 43
+count: 10
+reply: user8715979472056623512status: OKthread: 54
+thread processed counts: 125000target: 125000
+returned from latch for thread 29
+[OVERALL], RunTime(ms), 12251
+[OVERALL], Throughput(ops/sec), 81625.9897151253
+[TOTAL_GCS_G1_Young_Generation], Count, 10
+[TOTAL_GC_TIME_G1_Young_Generation], Time(ms), 178
+[TOTAL_GC_TIME_%_G1_Young_Generation], Time(%), 1.4529426169292303
+[TOTAL_GCS_G1_Old_Generation], Count, 0
+[TOTAL_GC_TIME_G1_Old_Generation], Time(ms), 0
+[TOTAL_GC_TIME_%_G1_Old_Generation], Time(%), 0.0
+[TOTAL_GCs], Count, 10
+[TOTAL_GC_TIME], Time(ms), 178
+[TOTAL_GC_TIME_%], Time(%), 1.4529426169292303
+[READ], Operations, 1000000
+[READ], AverageLatency(us), 91.723653
+[READ], MinLatency(us), 0
+[READ], MaxLatency(us), 11460607
+[READ], 95thPercentileLatency(us), 5
+[READ], 99thPercentileLatency(us), 18
+[READ], Return=OK, 1000000
+[CLEANUP], Operations, 8
+[CLEANUP], AverageLatency(us), 215.875
+[CLEANUP], MinLatency(us), 1
+[CLEANUP], MaxLatency(us), 1709
+[CLEANUP], 95thPercentileLatency(us), 1709
+[CLEANUP], 99thPercentileLatency(us), 1709
+/usr/bin/java  -classpath /mnt/sdb/YCSB/conf:/mnt/sdb/YCSB/core/target/core-0.18.0-SNAPSHOT.jar:/mnt/sdb/YCSB/rocksdb/target/rocksdb-binding-0.18.0-SNAPSHOT.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/HdrHistogram-2.1.4.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/animal-sniffer-annotations-1.19.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/annotations-4.1.1.4.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/checker-compat-qual-2.5.5.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/error_prone_annotations-2.4.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/failureaccess-1.0.1.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-api-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-context-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-core-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-netty-shaded-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-protobuf-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-protobuf-lite-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-stub-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/gson-2.8.6.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/guava-30.0-android.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/htrace-core4-4.1.0-incubating.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/j2objc-annotations-1.3.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/javax.annotation-api-1.3.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/jcip-annotations-1.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/jsr305-3.0.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/perfmark-api-0.23.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/proto-google-common-protos-2.0.1.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/protobuf-java-3.12.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/rocksdbjni-6.2.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/slf4j-api-1.7.25.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/slf4j-simple-1.7.25.jar site.ycsb.Client -t -db site.ycsb.db.rocksdb.RocksDBClient -s -P workloads/workload1 -p rocksdb.dir=/users/root/test -threads 16
+count: 10
+reply: user4496201920687507706status: OKthread: 38
+thread processed counts: 62500target: 62500
+returned from latch for thread 47
+count: 10
+reply: user983138169608658542status: OKthread: 46
+thread processed counts: 62500target: 62500
+returned from latch for thread 74
+count: 10
+reply: user1919448520675827821status: OKthread: 38
+thread processed counts: 62500target: 62500
+returned from latch for thread 36
+count: 10
+reply: user4962940970726402532status: OKthread: 66
+thread processed counts: 62500target: 62500
+returned from latch for thread 63
+count: 10
+reply: user2106556028248350218status: OKthread: 46
+thread processed counts: 62500target: 62500
+returned from latch for thread 33
+count: 10
+reply: user3698479804595871665status: OKthread: 66
+thread processed counts: 62500target: 62500
+returned from latch for thread 43
+count: 10
+reply: user4800925738931470785status: OKthread: 38
+thread processed counts: 62500target: 62500
+returned from latch for thread 62
+count: 10
+reply: user3931981747756882149status: OKthread: 46
+thread processed counts: 62500target: 62500
+returned from latch for thread 40
+count: 10
+reply: user1555091960809696847status: OKthread: 46
+thread processed counts: 62500target: 62500
+returned from latch for thread 29
+count: 10
+reply: user3564243489303280203status: OKthread: 46
+thread processed counts: 62500target: 62500
+returned from latch for thread 73
+count: 10
+reply: user1191530285793601639status: OKthread: 38
+thread processed counts: 62500target: 62500
+returned from latch for thread 64
+count: 10
+reply: user7853150912105459961status: OKthread: 46
+thread processed counts: 62500target: 62500
+returned from latch for thread 75
+count: 10
+reply: user7374829459188712535status: OKthread: 38
+thread processed counts: 62500target: 62500
+returned from latch for thread 52
+count: 10
+reply: user1724521721962864859status: OKthread: 38
+thread processed counts: 62500target: 62500
+returned from latch for thread 76
+count: 10
+reply: user8976602523555477707status: OKthread: 38
+thread processed counts: 62500target: 62500
+returned from latch for thread 56
+count: 10
+reply: user2425840051025416363status: OKthread: 38
+thread processed counts: 62500target: 62500
+returned from latch for thread 60
+[OVERALL], RunTime(ms), 7067
+[OVERALL], Throughput(ops/sec), 141502.75930380644
+[TOTAL_GCS_G1_Young_Generation], Count, 7
+[TOTAL_GC_TIME_G1_Young_Generation], Time(ms), 70
+[TOTAL_GC_TIME_%_G1_Young_Generation], Time(%), 0.990519315126645
+[TOTAL_GCS_G1_Old_Generation], Count, 0
+[TOTAL_GC_TIME_G1_Old_Generation], Time(ms), 0
+[TOTAL_GC_TIME_%_G1_Old_Generation], Time(%), 0.0
+[TOTAL_GCs], Count, 7
+[TOTAL_GC_TIME], Time(ms), 70
+[TOTAL_GC_TIME_%], Time(%), 0.990519315126645
+[READ], Operations, 1000000
+[READ], AverageLatency(us), 101.92587
+[READ], MinLatency(us), 0
+[READ], MaxLatency(us), 6332415
+[READ], 95thPercentileLatency(us), 12
+[READ], 99thPercentileLatency(us), 25
+[READ], Return=OK, 1000000
+[CLEANUP], Operations, 16
+[CLEANUP], AverageLatency(us), 95.9375
+[CLEANUP], MinLatency(us), 1
+[CLEANUP], MaxLatency(us), 1497
+[CLEANUP], 95thPercentileLatency(us), 5
+[CLEANUP], 99thPercentileLatency(us), 1497
+/usr/bin/java  -classpath /mnt/sdb/YCSB/conf:/mnt/sdb/YCSB/core/target/core-0.18.0-SNAPSHOT.jar:/mnt/sdb/YCSB/rocksdb/target/rocksdb-binding-0.18.0-SNAPSHOT.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/HdrHistogram-2.1.4.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/animal-sniffer-annotations-1.19.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/annotations-4.1.1.4.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/checker-compat-qual-2.5.5.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/error_prone_annotations-2.4.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/failureaccess-1.0.1.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-api-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-context-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-core-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-netty-shaded-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-protobuf-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-protobuf-lite-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-stub-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/gson-2.8.6.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/guava-30.0-android.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/htrace-core4-4.1.0-incubating.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/j2objc-annotations-1.3.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/javax.annotation-api-1.3.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/jcip-annotations-1.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/jsr305-3.0.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/perfmark-api-0.23.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/proto-google-common-protos-2.0.1.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/protobuf-java-3.12.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/rocksdbjni-6.2.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/slf4j-api-1.7.25.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/slf4j-simple-1.7.25.jar site.ycsb.Client -t -db site.ycsb.db.rocksdb.RocksDBClient -s -P workloads/workload1 -p rocksdb.dir=/users/root/test -threads 32
+count: 10
+reply: user5197504618984130096status: OKthread: 65
+thread processed counts: 31250target: 31250
+returned from latch for thread 33
+count: 10
+reply: user5221581724427719884status: OKthread: 104
+thread processed counts: 31250target: 31250
+returned from latch for thread 62
+count: 10
+reply: user9044421099444692509status: OKthread: 64
+thread processed counts: 31250target: 31250
+returned from latch for thread 36
+count: 10
+reply: user8379363161624732875status: OKthread: 64
+thread processed counts: 31250target: 31250
+returned from latch for thread 63
+count: 10
+reply: user4877657157133053638status: OKthread: 110
+thread processed counts: 31250target: 31250
+returned from latch for thread 89
+count: 10
+reply: user7140929081620906582status: OKthread: 110
+thread processed counts: 31250target: 31250
+returned from latch for thread 78
+count: 10
+reply: user7712897561509450699status: OKthread: 109
+thread processed counts: 31250target: 31250
+returned from latch for thread 75
+count: 10
+reply: user4161106837078501460status: OKthread: 42
+thread processed counts: 31250target: 31250
+returned from latch for thread 79
+count: 10
+reply: user4663848005389829601status: OKthread: 110
+thread processed counts: 31250target: 31250
+returned from latch for thread 87
+count: 10
+reply: user1281433324053217233status: OKthread: 31
+thread processed counts: 31250target: 31250
+returned from latch for thread 84
+count: 10
+reply: user4226502580338392858status: OKthread: 42
+thread processed counts: 31250target: 31250
+returned from latch for thread 52
+count: 10
+reply: user1226593073269919295status: OKthread: 51
+thread processed counts: 31250target: 31250
+returned from latch for thread 43
+count: 10
+reply: user8927842393055956542status: OKthread: 51
+thread processed counts: 31250target: 31250
+returned from latch for thread 73
+count: 10
+reply: user1436800091113425117status: OKthread: 110
+thread processed counts: 31250target: 31250
+returned from latch for thread 39
+count: 10
+reply: user3411512471095820118status: OKthread: 51
+thread processed counts: 31250target: 31250
+returned from latch for thread 69
+count: 10
+reply: user5687758893521926639status: OKthread: 51
+thread processed counts: 31250target: 31250
+returned from latch for thread 81
+count: 10
+reply: user8664820487308373079status: OKthread: 71
+thread processed counts: 31250target: 31250
+returned from latch for thread 86
+count: 10
+reply: user540757534285682893status: OKthread: 110
+thread processed counts: 31250target: 31250
+returned from latch for thread 80
+count: 10
+reply: user5025372029191795075status: OKthread: 51
+thread processed counts: 31250target: 31250
+returned from latch for thread 83
+count: 10
+reply: user9062334254938585822status: OKthread: 110
+thread processed counts: 31250target: 31250
+returned from latch for thread 92
+count: 10
+reply: user9149502604786392042status: OKthread: 71
+thread processed counts: 31250target: 31250
+returned from latch for thread 48
+count: 10
+reply: user6516121857881108917status: OKthread: 64
+thread processed counts: 31250target: 31250
+returned from latch for thread 74
+count: 10
+reply: user1992772612854151857status: OKthread: 64
+thread processed counts: 31250target: 31250
+returned from latch for thread 91
+count: 10
+reply: user3043506020230640394status: OKthread: 31
+thread processed counts: 31250target: 31250
+returned from latch for thread 88
+count: 10
+reply: user5791012715252673299status: OKthread: 110
+thread processed counts: 31250target: 31250
+returned from latch for thread 76
+count: 10
+reply: user4354313180451827466status: OKthread: 31
+thread processed counts: 31250target: 31250
+returned from latch for thread 56
+count: 10
+reply: user2691197332230597978status: OKthread: 31
+thread processed counts: 31250target: 31250
+returned from latch for thread 90
+count: 10
+reply: user4737363549316161399status: OKthread: 31
+thread processed counts: 31250target: 31250
+returned from latch for thread 82
+count: 10
+reply: user244303316443678874status: OKthread: 110
+thread processed counts: 31250target: 31250
+returned from latch for thread 29
+count: 10
+reply: user8071092640126083980status: OKthread: 110
+thread processed counts: 31250target: 31250
+returned from latch for thread 60
+count: 10
+reply: user5447605537005944758status: OKthread: 64
+thread processed counts: 31250target: 31250
+returned from latch for thread 85
+count: 10
+reply: user4684896253968450970status: OKthread: 110
+thread processed counts: 31250target: 31250
+returned from latch for thread 77
+[OVERALL], RunTime(ms), 8259
+[OVERALL], Throughput(ops/sec), 121080.03390240949
+[TOTAL_GCS_G1_Young_Generation], Count, 9
+[TOTAL_GC_TIME_G1_Young_Generation], Time(ms), 54
+[TOTAL_GC_TIME_%_G1_Young_Generation], Time(%), 0.6538321830730113
+[TOTAL_GCS_G1_Old_Generation], Count, 0
+[TOTAL_GC_TIME_G1_Old_Generation], Time(ms), 0
+[TOTAL_GC_TIME_%_G1_Old_Generation], Time(%), 0.0
+[TOTAL_GCs], Count, 9
+[TOTAL_GC_TIME], Time(ms), 54
+[TOTAL_GC_TIME_%], Time(%), 0.6538321830730113
+[READ], Operations, 1000000
+[READ], AverageLatency(us), 185.769611
+[READ], MinLatency(us), 0
+[READ], MaxLatency(us), 7540735
+[READ], 95thPercentileLatency(us), 6
+[READ], 99thPercentileLatency(us), 29
+[READ], Return=OK, 1000000
+[CLEANUP], Operations, 32
+[CLEANUP], AverageLatency(us), 82.3125
+[CLEANUP], MinLatency(us), 1
+[CLEANUP], MaxLatency(us), 2539
+[CLEANUP], 95thPercentileLatency(us), 5
+[CLEANUP], 99thPercentileLatency(us), 2539
+/usr/bin/java  -classpath /mnt/sdb/YCSB/conf:/mnt/sdb/YCSB/core/target/core-0.18.0-SNAPSHOT.jar:/mnt/sdb/YCSB/rocksdb/target/rocksdb-binding-0.18.0-SNAPSHOT.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/HdrHistogram-2.1.4.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/animal-sniffer-annotations-1.19.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/annotations-4.1.1.4.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/checker-compat-qual-2.5.5.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/error_prone_annotations-2.4.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/failureaccess-1.0.1.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-api-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-context-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-core-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-netty-shaded-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-protobuf-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-protobuf-lite-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-stub-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/gson-2.8.6.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/guava-30.0-android.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/htrace-core4-4.1.0-incubating.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/j2objc-annotations-1.3.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/javax.annotation-api-1.3.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/jcip-annotations-1.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/jsr305-3.0.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/perfmark-api-0.23.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/proto-google-common-protos-2.0.1.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/protobuf-java-3.12.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/rocksdbjni-6.2.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/slf4j-api-1.7.25.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/slf4j-simple-1.7.25.jar site.ycsb.Client -t -db site.ycsb.db.rocksdb.RocksDBClient -s -P workloads/workload1 -p rocksdb.dir=/users/root/test -threads 64
+count: 5
+reply: user8535772089738788829status: OKthread: 58
+thread processed counts: 15625target: 15625
+returned from latch for thread 86
+count: 5
+reply: user128251288795968936status: OKthread: 58
+thread processed counts: 15625target: 15625
+returned from latch for thread 78
+count: 5
+reply: user1690942087713961526status: OKthread: 42
+thread processed counts: 15625target: 15625
+returned from latch for thread 36
+count: 5
+reply: user7853150912105459961status: OKthread: 70
+thread processed counts: 15625target: 15625
+returned from latch for thread 63
+count: 5
+reply: user5495418496409597912status: OKthread: 155
+thread processed counts: 15625target: 15625
+returned from latch for thread 98
+count: 5
+reply: user1970757698970369057status: OKthread: 172
+thread processed counts: 15625target: 15625
+returned from latch for thread 43
+count: 5
+reply: user8079295676985814202status: OKthread: 40
+thread processed counts: 15625target: 15625
+returned from latch for thread 65
+count: 5
+reply: user7991997162371229799status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 95
+count: 5
+reply: user5227159737823694644status: OKthread: 153
+thread processed counts: 15625target: 15625
+returned from latch for thread 103
+count: 5
+reply: user5383271983579414050status: OKthread: 71
+thread processed counts: 15625target: 15625
+returned from latch for thread 85
+count: 5
+reply: user877162441418492656status: OKthread: 172
+thread processed counts: 15625target: 15625
+returned from latch for thread 77
+count: 5
+reply: user638575881831419022status: OKthread: 40
+thread processed counts: 15625target: 15625
+returned from latch for thread 121
+count: 5
+reply: user6169964274347365279status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 113
+count: 5
+reply: user4986621077459100864status: OKthread: 153
+thread processed counts: 15625target: 15625
+returned from latch for thread 100
+count: 5
+reply: user4307842891628022217status: OKthread: 40
+thread processed counts: 15625target: 15625
+returned from latch for thread 51
+count: 5
+reply: user4463007952590441653status: OKthread: 163
+thread processed counts: 15625target: 15625
+returned from latch for thread 75
+count: 5
+reply: user3871587461958203587status: OKthread: 40
+thread processed counts: 15625target: 15625
+returned from latch for thread 94
+count: 5
+reply: user6464296169086045729status: OKthread: 40
+thread processed counts: 15625target: 15625
+returned from latch for thread 79
+count: 5
+reply: user8994778957203174920status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 87
+count: 5
+reply: user5110631379667906223status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 80
+count: 5
+reply: user7671548998050486306status: OKthread: 40
+thread processed counts: 15625target: 15625
+returned from latch for thread 88
+count: 5
+reply: user7207941499003442122status: OKthread: 40
+thread processed counts: 15625target: 15625
+returned from latch for thread 29
+count: 5
+reply: user4945917268834888983status: OKthread: 40
+thread processed counts: 15625target: 15625
+count: 5
+returned from latch for thread 117
+reply: user6412957613416492869status: OKthread: 71
+thread processed counts: 15625target: 15625
+returned from latch for thread 60
+count: 5
+reply: user1962702464185170364status: OKthread: 71
+thread processed counts: 15625target: 15625
+returned from latch for thread 109
+count: 5
+reply: user5431128950143173960status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 101
+count: 5
+reply: user2164686964657084503status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 97
+count: 5
+reply: user7329856889846409192status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 105
+count: 5
+reply: user6530877912175803251status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 110
+count: 5
+reply: user8679087565273448970status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 89
+count: 5
+reply: user2241676320920464448status: OKthread: 172
+thread processed counts: 15625target: 15625
+returned from latch for thread 102
+count: 5
+reply: user6412957613416492869status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 62
+count: 5
+reply: user6586376519391248922status: OKthread: 40
+thread processed counts: 15625target: 15625
+returned from latch for thread 81
+count: 5
+reply: user1280530753590085858status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 118
+count: 5
+reply: user4877657157133053638status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 33
+count: 5
+reply: user1144071753636637198status: OKthread: 71
+thread processed counts: 15625target: 15625
+returned from latch for thread 116
+count: 5
+reply: user1913399168257987964status: OKthread: 71
+thread processed counts: 15625target: 15625
+returned from latch for thread 108
+count: 5
+reply: user2307318184946455152status: OKthread: 172
+thread processed counts: 15625target: 15625
+returned from latch for thread 84
+count: 5
+reply: user1629224254360665997status: OKthread: 172
+thread processed counts: 15625target: 15625
+returned from latch for thread 76
+count: 5
+reply: user2289215697798959437status: OKthread: 172
+thread processed counts: 15625target: 15625
+returned from latch for thread 92
+count: 5
+reply: user975098171778616820status: OKthread: 40
+thread processed counts: 15625target: 15625
+returned from latch for thread 119
+count: 5
+reply: user6082274708283958067status: OKthread: 40
+thread processed counts: 15625target: 15625
+returned from latch for thread 111
+count: 5
+reply: user5176842707258415395status: OKthread: 172
+thread processed counts: 15625target: 15625
+returned from latch for thread 56
+count: 5
+reply: user4737363549316161399status: OKthread: 163
+thread processed counts: 15625target: 15625
+returned from latch for thread 124
+count: 5
+reply: user4353467870140404646status: OKthread: 40
+thread processed counts: 15625target: 15625
+returned from latch for thread 90
+count: 5
+reply: user1094726157622605969status: OKthread: 40
+thread processed counts: 15625target: 15625
+returned from latch for thread 82
+count: 5
+reply: user4867934329146343038status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 107
+count: 5
+reply: user7339876884928099950status: OKthread: 163
+thread processed counts: 15625target: 15625
+returned from latch for thread 99
+count: 5
+reply: user6136620112704008423status: OKthread: 163
+thread processed counts: 15625target: 15625
+returned from latch for thread 93
+count: 5
+reply: user8846764046657645299status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 122
+count: 5
+reply: user2003798959615966804status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 114
+count: 5
+reply: user1404420665461844968status: OKthread: 163
+thread processed counts: 15625target: 15625
+returned from latch for thread 47
+count: 5
+reply: user4534346861881988861status: OKthread: 163
+thread processed counts: 15625target: 15625
+returned from latch for thread 106
+count: 5
+reply: user6563222620360364968status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 72
+count: 5
+reply: user4161106837078501460status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 115
+count: 5
+reply: user5653829280061491678status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 83
+count: 5
+reply: user5176952236075619119status: OKthread: 163
+thread processed counts: 15625target: 15625
+returned from latch for thread 91
+count: 5
+reply: user6244026054755024075status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 123
+count: 5
+reply: user3569109790511501470status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 112
+count: 5
+reply: user991251629202258152status: OKthread: 163
+thread processed counts: 15625target: 15625
+returned from latch for thread 39
+count: 5
+reply: user8279861590111555725status: OKthread: 173
+thread processed counts: 15625target: 15625
+count: 5
+reply: user4786008158531431472status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 120
+returned from latch for thread 64
+count: 5
+reply: user8732806930375773650status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 96
+count: 5
+reply: user129782412482003490status: OKthread: 173
+thread processed counts: 15625target: 15625
+returned from latch for thread 104
+[OVERALL], RunTime(ms), 8542
+[OVERALL], Throughput(ops/sec), 117068.60220088973
+[TOTAL_GCS_G1_Young_Generation], Count, 11
+[TOTAL_GC_TIME_G1_Young_Generation], Time(ms), 83
+[TOTAL_GC_TIME_%_G1_Young_Generation], Time(%), 0.9716693982673847
+[TOTAL_GCS_G1_Old_Generation], Count, 0
+[TOTAL_GC_TIME_G1_Old_Generation], Time(ms), 0
+[TOTAL_GC_TIME_%_G1_Old_Generation], Time(%), 0.0
+[TOTAL_GCs], Count, 11
+[TOTAL_GC_TIME], Time(ms), 83
+[TOTAL_GC_TIME_%], Time(%), 0.9716693982673847
+[READ], Operations, 1000000
+[READ], AverageLatency(us), 388.658509
+[READ], MinLatency(us), 0
+[READ], MaxLatency(us), 7659519
+[READ], 95thPercentileLatency(us), 10
+[READ], 99thPercentileLatency(us), 45
+[READ], Return=OK, 1000000
+[CLEANUP], Operations, 64
+[CLEANUP], AverageLatency(us), 30.015625
+[CLEANUP], MinLatency(us), 1
+[CLEANUP], MaxLatency(us), 1740
+[CLEANUP], 95thPercentileLatency(us), 5
+[CLEANUP], 99thPercentileLatency(us), 12
+/usr/bin/java  -classpath /mnt/sdb/YCSB/conf:/mnt/sdb/YCSB/core/target/core-0.18.0-SNAPSHOT.jar:/mnt/sdb/YCSB/rocksdb/target/rocksdb-binding-0.18.0-SNAPSHOT.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/HdrHistogram-2.1.4.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/animal-sniffer-annotations-1.19.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/annotations-4.1.1.4.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/checker-compat-qual-2.5.5.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/error_prone_annotations-2.4.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/failureaccess-1.0.1.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-api-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-context-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-core-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-netty-shaded-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-protobuf-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-protobuf-lite-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-stub-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/gson-2.8.6.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/guava-30.0-android.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/htrace-core4-4.1.0-incubating.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/j2objc-annotations-1.3.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/javax.annotation-api-1.3.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/jcip-annotations-1.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/jsr305-3.0.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/perfmark-api-0.23.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/proto-google-common-protos-2.0.1.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/protobuf-java-3.12.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/rocksdbjni-6.2.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/slf4j-api-1.7.25.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/slf4j-simple-1.7.25.jar site.ycsb.Client -t -db site.ycsb.db.rocksdb.RocksDBClient -s -P workloads/workload1 -p rocksdb.dir=/users/root/test -threads 128
+count: 3
+reply: user6412957613416492869status: OKthread: 298
+thread processed counts: 7813target: 7813
+returned from latch for thread 121
+count: 3
+reply: user9141397963846669105status: OKthread: 268
+thread processed counts: 7813target: 7813
+returned from latch for thread 81
+count: 3
+reply: user5081534314605366459status: OKthread: 286
+thread processed counts: 7813target: 7813
+returned from latch for thread 89
+count: 2
+reply: user5243436054284581007status: OKthread: 253
+thread processed counts: 7812target: 7812
+returned from latch for thread 169
+count: 3
+reply: user6663171067778169469status: OKthread: 253
+thread processed counts: 7813target: 7813
+returned from latch for thread 97
+count: 3
+reply: user9103032315962586793status: OKthread: 298
+thread processed counts: 7813target: 7813
+returned from latch for thread 88
+count: 3
+reply: user2335447642625410183status: OKthread: 298
+thread processed counts: 7813target: 7813
+returned from latch for thread 80
+count: 2
+reply: user4771826753436383398status: OKthread: 286
+thread processed counts: 7812target: 7812
+returned from latch for thread 136
+count: 2
+reply: user6412957613416492869status: OKthread: 298
+thread processed counts: 7812target: 7812
+returned from latch for thread 144
+count: 2
+reply: user5549142852998135978status: OKthread: 205
+count: 3
+thread processed counts: 7812target: 7812
+reply: user293130010485428877status: OKthread: 293
+thread processed counts: 7813target: 7813
+returned from latch for thread 152
+returned from latch for thread 72
+count: 3
+reply: user458989547345096629status: OKthread: 293
+thread processed counts: 7813target: 7813
+returned from latch for thread 39
+count: 2
+reply: user1944648889574718182status: OKthread: 298
+thread processed counts: 7812target: 7812
+count: 2
+returned from latch for thread 184
+reply: user6708696214674640600status: OKthread: 298
+thread processed counts: 7812target: 7812
+returned from latch for thread 168
+count: 2
+reply: user1427280889657050588status: OKthread: 293
+thread processed counts: 7812target: 7812
+returned from latch for thread 160
+count: 2
+reply: user5260537181238165919status: OKthread: 268
+thread processed counts: 7812target: 7812
+returned from latch for thread 176
+count: 2
+reply: user6800540021152722164status: OKthread: 292
+thread processed counts: 7812target: 7812
+returned from latch for thread 128
+count: 3
+reply: user2131650618269260634status: OKthread: 281
+thread processed counts: 7813target: 7813
+returned from latch for thread 82
+count: 3
+reply: user6912465827293304869status: OKthread: 290
+thread processed counts: 7813target: 7813
+returned from latch for thread 90
+count: 3
+reply: user5023024972569349325status: OKthread: 259
+thread processed counts: 7813target: 7813
+returned from latch for thread 100
+count: 3
+reply: user7329856889846409192status: OKthread: 292
+thread processed counts: 7813target: 7813
+returned from latch for thread 111
+count: 3
+reply: user6551688781413762479status: OKthread: 286
+thread processed counts: 7813target: 7813
+returned from latch for thread 91
+count: 3
+reply: user6149158867634831088status: OKthread: 253
+thread processed counts: 7813target: 7813
+returned from latch for thread 99
+count: 2
+count: 3
+reply: user7751144861922452614status: OKthread: 281
+thread processed counts: 7812target: 7812
+reply: user3085616657807737785status: OKthread: 265
+thread processed counts: 7813target: 7813
+returned from latch for thread 179
+returned from latch for thread 83
+count: 2
+reply: user6513185463371511095status: OKthread: 205
+thread processed counts: 7812target: 7812
+returned from latch for thread 187
+count: 3
+reply: user1414400960471141009status: OKthread: 295
+thread processed counts: 7813target: 7813
+returned from latch for thread 36
+count: 2
+reply: user5167862830364606855status: OKthread: 253
+thread processed counts: 7812target: 7812
+returned from latch for thread 167
+count: 3
+reply: user1935611281489989436status: OKthread: 232
+thread processed counts: 7813target: 7813
+count: 2
+returned from latch for thread 65
+reply: user15567358138334749status: OKthread: 265
+thread processed counts: 7812target: 7812
+returned from latch for thread 143
+count: 2
+reply: user7329856889846409192status: OKthread: 265
+thread processed counts: 7812target: 7812
+returned from latch for thread 127
+count: 2
+reply: user183067076462029128status: OKthread: 290
+thread processed counts: 7812target: 7812
+returned from latch for thread 135
+count: 2
+reply: user1342031707421443517status: OKthread: 286
+count: 3
+reply: user490568277015422553status: OKthread: 253
+thread processed counts: 7813target: 7813
+thread processed counts: 7812target: 7812
+returned from latch for thread 119
+returned from latch for thread 175
+count: 2
+reply: user8739617478364330752status: OKthread: 253
+thread processed counts: 7812target: 7812
+returned from latch for thread 159
+count: 2
+reply: user5406588844411546996status: OKthread: 265
+thread processed counts: 7812target: 7812
+returned from latch for thread 151
+count: 3
+reply: user3757848738122613329status: OKthread: 292
+thread processed counts: 7813target: 7813
+returned from latch for thread 96
+count: 3
+reply: user542240701210529175status: OKthread: 295
+thread processed counts: 7813target: 7813
+returned from latch for thread 104
+count: 3
+reply: user700088168221830857status: OKthread: 259
+thread processed counts: 7813target: 7813
+returned from latch for thread 93
+count: 3
+reply: user6412957613416492869status: OKthread: 281
+thread processed counts: 7813target: 7813
+returned from latch for thread 77
+count: 3
+reply: user1894708144542316422status: OKthread: 286
+thread processed counts: 7813target: 7813
+returned from latch for thread 112
+count: 3
+reply: user7592531887436126790status: OKthread: 234
+thread processed counts: 7813target: 7813
+returned from latch for thread 120
+count: 2
+reply: user6136620112704008423status: OKthread: 286
+thread processed counts: 7812target: 7812
+returned from latch for thread 125
+count: 3
+reply: user1632442442879236818status: OKthread: 281
+thread processed counts: 7813target: 7813
+returned from latch for thread 101
+count: 3
+reply: user7549568556589633919status: OKthread: 286
+thread processed counts: 7813target: 7813
+returned from latch for thread 109
+count: 3
+reply: user6347636210467575112status: OKthread: 259
+thread processed counts: 7813target: 7813
+returned from latch for thread 85
+count: 3
+reply: user2425840051025416363status: OKthread: 259
+thread processed counts: 7813target: 7813
+returned from latch for thread 79
+count: 3
+reply: user8748187588292289647status: OKthread: 205
+thread processed counts: 7813target: 7813
+returned from latch for thread 87
+count: 3
+reply: user3345490688518203044status: OKthread: 205
+thread processed counts: 7813target: 7813
+returned from latch for thread 43
+count: 2
+reply: user6943260818708223425status: OKthread: 234
+thread processed counts: 7812target: 7812
+returned from latch for thread 183
+count: 2
+reply: user4528809907025873323status: OKthread: 206
+thread processed counts: 7812target: 7812
+returned from latch for thread 164
+count: 3
+reply: user7695276110585112507status: OKthread: 259
+thread processed counts: 7813target: 7813
+returned from latch for thread 84
+count: 3
+reply: user7853150912105459961status: OKthread: 259
+thread processed counts: 7813target: 7813
+returned from latch for thread 116
+count: 3
+reply: user8875041229182692351status: OKthread: 259
+thread processed counts: 7813target: 7813
+returned from latch for thread 92
+count: 3
+reply: user8576427456865168828status: OKthread: 234
+thread processed counts: 7813target: 7813
+returned from latch for thread 33
+count: 3
+reply: user143542840485565972status: OKthread: 292
+thread processed counts: 7813target: 7813
+returned from latch for thread 62
+count: 2
+reply: user7329856889846409192status: OKthread: 206
+thread processed counts: 7812target: 7812
+returned from latch for thread 126
+count: 2
+reply: user1447374099445187676status: OKthread: 295
+thread processed counts: 7812target: 7812
+returned from latch for thread 182
+count: 3
+reply: user1076557106932881416status: OKthread: 295
+thread processed counts: 7813target: 7813
+returned from latch for thread 102
+count: 2
+reply: user4137328411654235351status: OKthread: 292
+thread processed counts: 7812target: 7812
+returned from latch for thread 150
+count: 3
+reply: user4867604365016892071status: OKthread: 281
+thread processed counts: 7813target: 7813
+returned from latch for thread 95
+count: 2
+reply: user4161106837078501460status: OKthread: 295
+thread processed counts: 7812target: 7812
+returned from latch for thread 153
+count: 2
+reply: user7329856889846409192status: OKthread: 281
+thread processed counts: 7812target: 7812
+returned from latch for thread 158
+count: 3
+reply: user6541094621869069071status: OKthread: 281
+thread processed counts: 7813target: 7813
+count: 2
+reply: user3301620489001703860status: OKthread: 292
+thread processed counts: 7812target: 7812
+returned from latch for thread 118
+returned from latch for thread 134
+count: 2
+reply: user4595510604756773081status: OKthread: 295
+thread processed counts: 7812target: 7812
+returned from latch for thread 177
+count: 2
+reply: user6035810153362931769status: OKthread: 295
+thread processed counts: 7812target: 7812
+returned from latch for thread 161
+count: 2
+reply: user5862628155689626206status: OKthread: 295
+thread processed counts: 7812target: 7812
+returned from latch for thread 137
+count: 3
+reply: user8643039048369149625status: OKthread: 295
+thread processed counts: 7813target: 7813
+returned from latch for thread 105
+count: 2
+reply: user3069160570763691258status: OKthread: 295
+thread processed counts: 7812target: 7812
+returned from latch for thread 145
+count: 2
+reply: user7648744127271873577status: OKthread: 295
+thread processed counts: 7812target: 7812
+returned from latch for thread 129
+count: 3
+reply: user5474362942101443391status: OKthread: 205
+thread processed counts: 7813target: 7813
+returned from latch for thread 73
+count: 3
+reply: user3286271677160398269status: OKthread: 206
+thread processed counts: 7813target: 7813
+count: 2
+reply: user6667379012554243003status: OKthread: 245
+thread processed counts: 7812target: 7812
+returned from latch for thread 113
+returned from latch for thread 185
+count: 3
+reply: user9170980585579368127status: OKthread: 245
+thread processed counts: 7813target: 7813
+returned from latch for thread 103
+count: 3
+reply: user5063456290575108490status: OKthread: 232
+thread processed counts: 7813target: 7813
+returned from latch for thread 76
+count: 3
+reply: user4555581593300673666status: OKthread: 253
+thread processed counts: 7813target: 7813
+count: 2
+reply: user8291853637521839741status: OKthread: 232
+returned from latch for thread 55
+thread processed counts: 7812target: 7812
+returned from latch for thread 140
+count: 3
+reply: user7810152392752737007status: OKthread: 265
+thread processed counts: 7813target: 7813
+returned from latch for thread 108
+count: 2
+reply: user5323215316245513029status: OKthread: 253
+thread processed counts: 7812target: 7812
+returned from latch for thread 148
+count: 2
+reply: user4329548948371140160status: OKthread: 234
+thread processed counts: 7812target: 7812
+count: 2
+reply: user8339692088230430552status: OKthread: 253
+thread processed counts: 7812target: 7812
+returned from latch for thread 172
+count: 2
+reply: user6253867837382876911status: OKthread: 234
+thread processed counts: 7812target: 7812
+returned from latch for thread 132
+returned from latch for thread 156
+count: 3
+reply: user2661477099242140564status: OKthread: 234
+thread processed counts: 7813target: 7813
+count: 2
+reply: user2719434334763201561status: OKthread: 290
+thread processed counts: 7812target: 7812
+count: 2
+reply: user7853150912105459961status: OKthread: 290
+thread processed counts: 7812target: 7812
+returned from latch for thread 180
+returned from latch for thread 124
+returned from latch for thread 188
+count: 3
+reply: user4663848005389829601status: OKthread: 253
+thread processed counts: 7813target: 7813
+returned from latch for thread 29
+count: 3
+reply: user8099881341665439598status: OKthread: 234
+thread processed counts: 7813target: 7813
+returned from latch for thread 60
+count: 2
+reply: user1972687257063199080status: OKthread: 234
+thread processed counts: 7812target: 7812
+returned from latch for thread 149
+count: 2
+reply: user5976611170784639614status: OKthread: 290
+thread processed counts: 7812target: 7812
+returned from latch for thread 173
+count: 2
+reply: user5229995693547319329status: OKthread: 232
+thread processed counts: 7812target: 7812
+returned from latch for thread 165
+count: 2
+reply: user3322142058839299200status: OKthread: 232
+thread processed counts: 7812target: 7812
+count: 3
+reply: user4307842891628022217status: OKthread: 290
+thread processed counts: 7813target: 7813
+returned from latch for thread 141
+returned from latch for thread 117
+count: 2
+reply: user4135800766530070662status: OKthread: 290
+thread processed counts: 7812target: 7812
+returned from latch for thread 133
+count: 2
+reply: user9156306254553620094status: OKthread: 232
+thread processed counts: 7812target: 7812
+returned from latch for thread 181
+count: 2
+reply: user2321359170924944357status: OKthread: 232
+thread processed counts: 7812target: 7812
+returned from latch for thread 157
+count: 3
+reply: user3559282696571154446status: OKthread: 232
+thread processed counts: 7813target: 7813
+returned from latch for thread 47
+count: 3
+reply: user9078072682532810209status: OKthread: 286
+thread processed counts: 7813target: 7813
+returned from latch for thread 122
+count: 3
+reply: user7705371474165476817status: OKthread: 232
+thread processed counts: 7813target: 7813
+returned from latch for thread 86
+count: 2
+reply: user5697513490355408137status: OKthread: 286
+thread processed counts: 7812target: 7812
+returned from latch for thread 130
+count: 3
+reply: user9159831928047959308status: OKthread: 245
+thread processed counts: 7813target: 7813
+returned from latch for thread 106
+count: 3
+reply: user5848320412995463236status: OKthread: 245
+thread processed counts: 7813target: 7813
+returned from latch for thread 98
+count: 3
+reply: user4354313180451827466status: OKthread: 232
+thread processed counts: 7813target: 7813
+returned from latch for thread 114
+count: 2
+reply: user1292897215286198status: OKthread: 245
+thread processed counts: 7812target: 7812
+returned from latch for thread 138
+count: 2
+reply: user1155034892984674943status: OKthread: 286
+thread processed counts: 7812target: 7812
+returned from latch for thread 154
+count: 2
+reply: user3914262929100236583status: OKthread: 245
+thread processed counts: 7812target: 7812
+returned from latch for thread 186
+count: 2
+reply: user8167943166928945680status: OKthread: 286
+thread processed counts: 7812target: 7812
+returned from latch for thread 178
+count: 2
+reply: user2345427937634706224status: OKthread: 286
+thread processed counts: 7812target: 7812
+returned from latch for thread 146
+count: 3
+reply: user4246981578711785455status: OKthread: 286
+thread processed counts: 7813target: 7813
+returned from latch for thread 74
+count: 3
+reply: user5785931454955061785status: OKthread: 286
+thread processed counts: 7813target: 7813
+returned from latch for thread 78
+count: 2
+reply: user9201920022940366576status: OKthread: 286
+thread processed counts: 7812target: 7812
+returned from latch for thread 162
+count: 2
+reply: user7853150912105459961status: OKthread: 245
+thread processed counts: 7812target: 7812
+returned from latch for thread 170
+count: 3
+reply: user3033169314011100468status: OKthread: 245
+thread processed counts: 7813target: 7813
+returned from latch for thread 110
+count: 3
+reply: user4970086745707977901status: OKthread: 232
+thread processed counts: 7813target: 7813
+returned from latch for thread 94
+count: 2
+reply: user245055693360519446status: OKthread: 245
+thread processed counts: 7812target: 7812
+returned from latch for thread 142
+count: 2
+reply: user6014103625580602175status: OKthread: 245
+thread processed counts: 7812target: 7812
+returned from latch for thread 174
+count: 2
+reply: user2327489290835875254status: OKthread: 245
+thread processed counts: 7812target: 7812
+returned from latch for thread 166
+count: 3
+reply: user667007284732277901status: OKthread: 245
+thread processed counts: 7813target: 7813
+returned from latch for thread 75
+count: 3
+reply: user7046586666506623960status: OKthread: 245
+thread processed counts: 7813target: 7813
+returned from latch for thread 52
+count: 2
+count: 2
+reply: user5601929250955454849status: OKthread: 245
+thread processed counts: 7812target: 7812
+reply: user4575827025803635450status: OKthread: 232
+thread processed counts: 7812target: 7812
+returned from latch for thread 163
+returned from latch for thread 171
+count: 2
+reply: user5421197096631709801status: OKthread: 245
+thread processed counts: 7812target: 7812
+returned from latch for thread 139
+count: 3
+reply: user2944953540245878878status: OKthread: 245
+thread processed counts: 7813target: 7813
+returned from latch for thread 107
+count: 2
+reply: user245055693360519446status: OKthread: 245
+thread processed counts: 7812target: 7812
+returned from latch for thread 131
+count: 3
+reply: user2950134568628394141status: OKthread: 245
+thread processed counts: 7813target: 7813
+returned from latch for thread 115
+count: 2
+reply: user724339445592305584status: OKthread: 245
+thread processed counts: 7812target: 7812
+returned from latch for thread 147
+count: 2
+reply: user1260661670151009112status: OKthread: 245
+thread processed counts: 7812target: 7812
+returned from latch for thread 155
+count: 3
+reply: user1841871792162822148status: OKthread: 245
+thread processed counts: 7813target: 7813
+returned from latch for thread 123
+[OVERALL], RunTime(ms), 7527
+[OVERALL], Throughput(ops/sec), 132855.05513484788
+[TOTAL_GCS_G1_Young_Generation], Count, 13
+[TOTAL_GC_TIME_G1_Young_Generation], Time(ms), 147
+[TOTAL_GC_TIME_%_G1_Young_Generation], Time(%), 1.9529693104822639
+[TOTAL_GCS_G1_Old_Generation], Count, 0
+[TOTAL_GC_TIME_G1_Old_Generation], Time(ms), 0
+[TOTAL_GC_TIME_%_G1_Old_Generation], Time(%), 0.0
+[TOTAL_GCs], Count, 13
+[TOTAL_GC_TIME], Time(ms), 147
+[TOTAL_GC_TIME_%], Time(%), 1.9529693104822639
+[READ], Operations, 1000000
+[READ], AverageLatency(us), 799.834093
+[READ], MinLatency(us), 0
+[READ], MaxLatency(us), 7016447
+[READ], 95thPercentileLatency(us), 6
+[READ], 99thPercentileLatency(us), 361
+[READ], Return=OK, 1000000
+[CLEANUP], Operations, 128
+[CLEANUP], AverageLatency(us), 14.125
+[CLEANUP], MinLatency(us), 1
+[CLEANUP], MaxLatency(us), 1459
+[CLEANUP], 95thPercentileLatency(us), 4
+[CLEANUP], 99thPercentileLatency(us), 6
