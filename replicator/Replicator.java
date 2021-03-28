@@ -67,93 +67,77 @@ public class Replicator {
     
 
     public static void main(String[] args) throws Exception {
-        Replicator replicator = new Replicator(50051, "", "128.110.153.114:50051");
+        Replicator replicator = new Replicator(50050, "128.110.155.63:50051", "128.110.155.63:50052");
         replicator.start();
         replicator.blockUntilShutdown();
     }
 
 
     private static class ReplicatorService extends RubbleKvStoreServiceGrpc.RubbleKvStoreServiceImplBase {
-        private static ConcurrentHashMap<Long, StreamObserver<Op>> obs;
-        private static ConcurrentHashMap<String, CountDownLatch> latches; 
-        private static ConcurrentHashMap<String, Thread> listeners;
+        private static ConcurrentHashMap<Long, StreamObserver<Op>> tail_obs;
+        private static ConcurrentHashMap<Long, StreamObserver<Op>> head_obs;
         private final List<RubbleKvStoreServiceGrpc.RubbleKvStoreServiceStub> tailStub;
-        List<ManagedChannel> tailChan;
-        // ManagedChannel head_chan;
-        // private static Map<String, StreamObserver<OpReply>> reply_obs; ycsb_ob; // return OpReply
-        // private final StreamObserver<Op> head_client; // return OpReply
-        // private final StreamObserver<Op> tail_client; // return OpReply
-        // private final CountDownLatch tail_latch;
-        // private final CountDownLatch tail_create;
-
-
+        private final List<ManagedChannel> tailChan;
+        private final List<RubbleKvStoreServiceGrpc.RubbleKvStoreServiceStub> headStub;
+        private final List<ManagedChannel> headChan;
+        
+    
         public ReplicatorService(String head_addr, String tail_addr) {   
-            obs = new ConcurrentHashMap<>();
-            latches = new ConcurrentHashMap<>();
-            listeners = new ConcurrentHashMap<>();
-            // create channels
-            tailChan = new ArrayList<>();
-            tailStub = new ArrayList<>();
-            for(int i = 0; i < 16; i++) {
-                ManagedChannel chan = ManagedChannelBuilder.forTarget(tail_addr).usePlaintext().build();
-                tailChan.add(chan);
-                tailStub.add(RubbleKvStoreServiceGrpc.newStub(chan));
-            }
+            tail_obs = new ConcurrentHashMap<>();
+            System.out.println("replicator start service with head: " + head_addr + " tail: " + tail_addr);
+            // create channels --> default to 16 channels
+            this.tailChan = new ArrayList<>();
+            this.tailStub = new ArrayList<>();
+            this.headChan = new ArrayList<>();
+            this.headStub = new ArrayList<>();
+            allocChannel(tail_addr, 16, this.tailChan, this.tailStub);
+            allocChannel(head_addr, 16, this.headChan, this.headStub);
             
+        }
+        
+        // helper function to pre-allocate channels to communicate with shard heads and tails
+        private void allocChannel(String addr, int num_chan, List<ManagedChannel> chanList,
+                    List<RubbleKvStoreServiceGrpc.RubbleKvStoreServiceStub>stubList) {
+            for(int i = 0; i < num_chan; i++) {
+                ManagedChannel chan = ManagedChannelBuilder.forTarget(addr).usePlaintext().build();
+                chanList.add(chan);
+                stubList.add(RubbleKvStoreServiceGrpc.newStub(chan));
+            }
         }
 
         @Override
         public StreamObserver<Op> doOp(final StreamObserver<OpReply> ob) {
-            // TODO: think about multi-threading
-
             // add the write-back-to-ycsb stream to Map
             // this.ycsb_obs.put(Thread.currentThread().getId(), ob);
             final Long tid = Thread.currentThread().getId();
             // System.out.println("thread: " + tid + " in doOp");
-            // create tail client that will use the write-back-ycsb stream
-            initTailOb(tid, ob);
 
-            final CountDownLatch ycsb_latch = new CountDownLatch(1);
-            // this.latches.put("ycsb", ycsb_latch);
-            // Thread t = new Thread(new Runnable() {
-            //     @Override
-            //     public void run() {
-            //         try {
-            //             ycsb_latch.await();
-            //             // System.out.println("just finished");
-            //             Thread.sleep(1000);
-            //             // System.out.println("ycsb request completed");
-            //             ob.onCompleted();
-            //         } catch (InterruptedException e) {
-            //             e.printStackTrace();
-            //         }
-            //     }
-            // });
-            // this.listeners.put("ycsb", t);
-            // t.start();
+            // create tail client that will use the write-back-ycsb stream
+            // note that we create one tail observer per thread
+            initTailOb(tid, ob);
+            initHeadOb(tid);
 
             // create the ycsb-op processing logic with the tail client
             // System.out.println("tail_client: " + this.obs.containsKey(tid));
-            final StreamObserver<Op> tail_client = this.obs.get(tid);
+            final StreamObserver<Op> tail_client = this.tail_obs.get(tid);
+            final StreamObserver<Op> head_client = this.head_obs.get(tid);
             return new StreamObserver<Op>(){
                 int opcount = 0;
                 // Set set = new HashSet();
                 @Override
                 public void onNext(Op op) {
-                    // GET
-                    if (op.getType().getNumber() == 0) {
-                        // set.add(Thread.currentThread().getId());
+                    // GET --> go to TAIL
+                    if (op.getOpsCount() > 0 && op.getOps(0).getType().getNumber() == 0) {
                         // System.out.println("tid: " + tid + " Thread " + Thread.currentThread().getId() + " onNext -> tail");
-                        // System.out.println("request key: " + op.getKey());
                         tail_client.onNext(op);
+                    } else { // other ops going to HEAD
+                        head_client.onNext(op);
                     }
-
                 }
 
                 @Override
                 public void onError(Throwable t) {
                     // System.err.println("ycsb observer failed: " + Status.fromThrowable(t));
-                    ycsb_latch.countDown();
                 }
 
                 @Override
@@ -161,68 +145,62 @@ public class Replicator {
                     // System.out.println("ycsb incoming stream completed");
                     // System.out.println(set);
                     tail_client.onCompleted();
-                    ycsb_latch.countDown();
+                    head_client.onCompleted();
                 }
             };  
         }
-
+        
+        // add observer that could write to tail into Map<StreamObserver> obs
         private void initTailOb(Long id, StreamObserver<OpReply> ob) {
-            // System.out.println("ycsb ob: " + this.obs.containsKey("ycsb"));
             final StreamObserver<OpReply> ycsb_ob = ob;
             // replies from tail node
-            this.obs.put(id, this.tailStub.get(id.intValue()%16).doOp( new StreamObserver<OpReply>(){
+            this.tail_obs.put(id, this.tailStub.get(id.intValue()%16).doOp( new StreamObserver<OpReply>(){
                 @Override
                 public void onNext(OpReply reply) {
                     // System.out.println("reply: " + reply.getKey());
                     // forward to ycsb client
                     ycsb_ob.onNext(reply);
-                    // Replicator.getObs("ycsb");
                 }
 
                 @Override
                 public void onError(Throwable t) {
                     // System.err.println("tail observer failed: " + Status.fromThrowable(t));
                     ycsb_ob.onCompleted();
-                    // tail_latch.countDown();
                 }
 
                 @Override
                 public void onCompleted() {
                     System.out.println("tail node reply stream completed");
                     ycsb_ob.onCompleted();
-                    // tail_latch.countDown();
                 }
             }));
-            // return tail_latch;
+        }
+
+        // add an observer to comm with head nodes into Map<long, StreamObserver<Op>> head_obs
+        private void initHeadOb(Long id) {
+            // replies from tail node
+            this.head_obs.put(id, this.headStub.get(id.intValue()%16).doOp( new StreamObserver<OpReply>(){
+                @Override
+                public void onNext(OpReply reply) {
+                    // do nothing on replies from primary  
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                    System.err.println("head observer failed: " + Status.fromThrowable(t));
+                }
+
+                @Override
+                public void onCompleted() {
+                    System.out.println("head node reply stream completed");
+                }
+            }));
         }       
-
-
     }
-
+        
 }
 
-        // private CountDownLatch initHeadOb() {
-        //     final CountDownLatch head_latch = new CountDownLatch(1);
-        //     this.head_client = asyncStub.doOp( new StreamObserver<OpReply>(){
-        //         @Override
-        //         public void onNext(Op op) {
-        //             // do nothing
-        //         }
-
-        //         @Override
-        //         public void onError(Throwable t) {
-        //             System.err.println("head observer failed: " + Status.fromThrowable(t));
-        //             head_latch.countDown();
-        //         }
-
-        //         @Override
-        //         public void onCompleted() {
-        //             System.out.println("head node reply stream completed");
-        //             head_latch.countDown();
-        //         }
-        //     });
-        //     return head_latch;
-        // }
+       
 
 
     
