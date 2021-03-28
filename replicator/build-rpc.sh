@@ -4,6 +4,7 @@ if [[ "$#" -eq "0" ]]
     exit
 fi
 mkdir -p target/
+mkdir -p cpp_target/
 ./protoc --plugin=protoc-gen-grpc-java --grpc-java_out=target --proto_path=. $1
 ./protoc --proto_path=. --java_out=target/ --cpp_out=cpp_target/ $1
 cd target
