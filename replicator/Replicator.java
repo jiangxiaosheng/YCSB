@@ -28,7 +28,7 @@ public class Replicator {
     public Replicator(int ycsb_p, String head_addr, String tail_addr) {
         this.ycsb_port = ycsb_p;
         this.ycsb_server = ServerBuilder.forPort(ycsb_p)
-                    .executor(Executors.newFixedThreadPool(32))
+                    .executor(Executors.newFixedThreadPool(64))
                     .addService(new ReplicatorService(head_addr, tail_addr))
                     .build();
     }
@@ -67,7 +67,8 @@ public class Replicator {
     
 
     public static void main(String[] args) throws Exception {
-        Replicator replicator = new Replicator(50050, "128.110.153.102:50051", "128.110.153.102:50052");
+        // Replicator replicator = new Replicator(50050, "128.110.153.102:50051", "128.110.153.93:50052");
+        Replicator replicator = new Replicator(50050, "128.110.153.93:50052", "128.110.153.93:50052");
         replicator.start();
         replicator.blockUntilShutdown();
     }
@@ -139,10 +140,10 @@ public class Replicator {
                     // if (op.getOpsCount() > 0 && op.getOps(0).getType().getNumber() == 0) {
                     dup.put(op.getId(), ob);
                     if (op.getType().getNumber() == 0) {
-                        System.out.println("tid: " + tid + " Thread " + op.getId() + " onNext -> tail");
+                        // System.out.println("tid: " + tid + " Thread " + op.getId() + " onNext -> tail");
                         tail_client.onNext(op);
                     } else { // other ops going to HEAD
-                        System.out.println("tid: " + tid + " Thread " + Thread.currentThread().getId() + " onNext -> head");
+                        // System.out.println("tid: " + tid + " Thread " + Thread.currentThread().getId() + " onNext -> head");
                         head_client.onNext(op);
                     }
                 }
@@ -168,15 +169,18 @@ public class Replicator {
                 int opcount = 0;
                 @Override
                 public void onNext(OpReply op) {
-                    System.out.println("op: " + op.getType() + " key" + op.getKey() + " id: " + op.getId());
-                    System.out.println("SendReply forward to ycsb, ycsb is alive: " + !(ycsb_tmp == null));
+                    ++opcount;
+                    if(opcount % 100000 == 0) {
+                        System.out.println("op: " + op.getType() + " key" + op.getKey() + " id: " + op.getId());
+                    }
+                    // System.out.println("SendReply forward to ycsb, ycsb is alive: " + !(ycsb_tmp == null));
                     ycsb_tmps.get(op.getId()).onNext(op);
-                    System.out.println("opcount: " + (++opcount));
+                    // System.out.println("opcount: " + (++opcount));
                 }
 
                 @Override
                 public void onError(Throwable t) {
-                    System.err.println("SendReply ob failed: " + Status.fromThrowable(t));
+                    // System.err.println("SendReply ob failed: " + Status.fromThrowable(t));
                     // ycsb_tmp.onCompleted();
                 }
 
@@ -201,7 +205,7 @@ public class Replicator {
 
                 @Override
                 public void onError(Throwable t) {
-                    System.err.println("tail observer failed: " + Status.fromThrowable(t));
+                    // System.err.println("tail observer failed: " + Status.fromThrowable(t));
                 }
 
                 @Override
@@ -222,7 +226,7 @@ public class Replicator {
 
                 @Override
                 public void onError(Throwable t) {
-                    System.err.println("head observer failed: " + Status.fromThrowable(t));
+                    // System.err.println("head observer failed: " + Status.fromThrowable(t));
                 }
 
                 @Override
