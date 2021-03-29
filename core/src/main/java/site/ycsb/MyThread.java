@@ -12,11 +12,8 @@ import io.grpc.StatusRuntimeException;
  * Custom thread with i/o streams and socket.
  */
 public class MyThread extends Thread {
-  private Channel channel;
   private Runnable r;
-  // private long opcount;
   private long sendCount;
-  // private long avg;
   private long target;
   private StreamObserver<Op> observer;
   private final CountDownLatch latch;
@@ -24,12 +21,9 @@ public class MyThread extends Thread {
 
   public MyThread(Runnable r, Channel channel, long target) {
     this.r = r;
-    this.channel = channel;
-    // this.opcount = 0;
-    // this.avg = 0;
     this.target = target;
     this.sendCount = 0;
-    this.asyncStub = RubbleKvStoreServiceGrpc.newStub(this.channel);
+    this.asyncStub = RubbleKvStoreServiceGrpc.newStub(channel);
     this.latch = this.createObserver();
   }
 
@@ -39,11 +33,18 @@ public class MyThread extends Thread {
 
   public CountDownLatch createObserver() {
     final CountDownLatch finishLatch = new CountDownLatch(1);
+    final long t = this.target;
     this.observer = asyncStub.doOp( new StreamObserver<OpReply>(){
+      long recvCount = 0;
+      long tar = t;
       @Override
       public void onNext(OpReply reply) {
         OpReply r  = reply;
-        // System.out.println("reply: " + reply.getKey() + "status: " + reply.getStatus());
+        System.out.println("reply: " + reply.getKey() + "status: " + reply.getStatus());
+        System.out.println("recvCount: " + recvCount + " tar: " + tar);
+        if(++recvCount == tar) {
+          finishLatch.countDown();
+        }
       }
 
       @Override
@@ -63,7 +64,7 @@ public class MyThread extends Thread {
 
   public void onNext(String k, String v, int seq, int op) {
     Op operation = Op.newBuilder().setKey(k).setValue(v)
-                     .setId(seq).setType(Op.OpType.forNumber(op)).build();
+                     .setId(this.getId()).setType(Op.OpType.forNumber(op)).build();
     this.observer.onNext(operation);
     this.sendCount++;
     // System.out.println("sendCount: " + sendCount);

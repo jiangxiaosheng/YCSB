@@ -15,6 +15,9 @@ service RubbleKvStoreService {
 
   // perform a db operation (CRUD)
   rpc DoOp(stream Op) returns (stream OpReply){}
+
+  // used by the tail node to send the true rely to the replicator
+  rpc SendReply(stream OpReply) returns (stream Reply){}
 }
 
 // operation to perform on a db
@@ -36,10 +39,11 @@ message Op{
 
 message OpReply{
   bool ok = 1;
-  string value = 2;
-  string status = 3;
+  string key = 2;
+  string value = 3;
+  string status = 4;
 
-  int64  Id = 4;
+  int64  Id = 5;
   enum  OpType {
     GET = 0;
     PUT = 1;
@@ -47,9 +51,13 @@ message OpReply{
     UPDATE = 3;
   }
 
-  OpType type = 5;
+  OpType type = 6;
 }
 
+//Reply from the replicator to the tail node, probably not needed
+message Reply{
+  bool ok = 1;
+}
 
 message SyncRequest {
   // a json string of args
