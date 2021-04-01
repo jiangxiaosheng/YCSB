@@ -40,8 +40,8 @@ public class MyThread extends Thread {
       @Override
       public void onNext(OpReply reply) {
         OpReply r  = reply;
-        System.out.println("reply: " + reply.getKey() + "status: " + reply.getStatus());
-        System.out.println("recvCount: " + recvCount + " tar: " + tar);
+        // System.out.println("reply: " + reply.getType() + "status: " + reply.getStatus());
+        // System.out.println("recvCount: " + recvCount + " tar: " + tar);
         if(++recvCount == tar) {
           finishLatch.countDown();
         }
@@ -49,13 +49,13 @@ public class MyThread extends Thread {
 
       @Override
       public void onError(Throwable t) {
-        // System.err.println("get failed " + Status.fromThrowable(t));
+        System.err.println("get failed " + Status.fromThrowable(t));
         finishLatch.countDown();
       }
 
       @Override
       public void onCompleted() {
-        // System.out.println("done with reply");
+        System.out.println("done with reply");
         finishLatch.countDown();
       }
     });
@@ -65,6 +65,8 @@ public class MyThread extends Thread {
   public void onNext(String k, String v, int seq, int op) {
     Op operation = Op.newBuilder().setKey(k).setValue(v)
                      .setId(this.getId()).setType(Op.OpType.forNumber(op)).build();
+    // Op operation = Op.newBuilder().setKey(k)
+    //                  .setId(this.getId()).setType(Op.OpType.forNumber(op)).build();
     this.observer.onNext(operation);
     this.sendCount++;
     // System.out.println("sendCount: " + sendCount);
