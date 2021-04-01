@@ -265,7 +265,7 @@ public class RocksDBClient extends DB {
   @Override
   public Status update(final String table, final String key, final Map<String, ByteIterator> values) {
     //TODO(AR) consider if this would be faster with merge operator
-
+    /* 
     try {
       if (!COLUMN_FAMILIES.containsKey(table)) {
         createColumnFamily(table);
@@ -291,6 +291,14 @@ public class RocksDBClient extends DB {
       LOGGER.error(e.getMessage(), e);
       return Status.ERROR;
     }
+    */
+    MyThread ct = (MyThread)Thread.currentThread();
+    try {
+      ct.onNext(key, new String(serializeValues(values)), 4, 3);
+    } catch(IOException e) {
+      LOGGER.error(e.getMessage(), e);
+    }
+    return Status.OK;
   }
 
   @Override

@@ -25,11 +25,11 @@ public class Replicator {
     private final Server ycsb_server;
 
     /* constructor */
-    public Replicator(int ycsb_p, String head_addr, String tail_addr) {
+    public Replicator(int ycsb_p, String[][] shards) {
         this.ycsb_port = ycsb_p;
         this.ycsb_server = ServerBuilder.forPort(ycsb_p)
                     .executor(Executors.newFixedThreadPool(64))
-                    .addService(new ReplicatorService(head_addr, tail_addr))
+                    .addService(new ReplicatorService(shards))
                     .build();
     }
 
@@ -68,7 +68,11 @@ public class Replicator {
 
     public static void main(String[] args) throws Exception {
         // Replicator replicator = new Replicator(50050, "128.110.153.102:50051", "128.110.153.93:50052");
-        Replicator replicator = new Replicator(50050, "128.110.153.93:50052", "128.110.153.93:50052");
+        int num_shards = 2;
+        String[][] shards = new String[num_shards][2];
+        shards[0] = new String[]{"128.110.153.93:50051", "128.110.153.93:50052"};
+        shards[1] = new String[]{"128.110.153.102:50051", "128.110.153.102:50052"};
+        Replicator replicator = new Replicator(50050, shards);
         replicator.start();
         replicator.blockUntilShutdown();
     }
@@ -78,27 +82,35 @@ public class Replicator {
         private static ConcurrentHashMap<Long, StreamObserver<Op>> tail_obs;
         private static ConcurrentHashMap<Long, StreamObserver<Op>> head_obs;
         private static ConcurrentHashMap<Long, StreamObserver<OpReply>> ycsb_obs;
-        private static StreamObserver<OpReply> ycsb_ob;
         private final List<RubbleKvStoreServiceGrpc.RubbleKvStoreServiceStub> tailStub;
         private final List<ManagedChannel> tailChan;
         private final List<RubbleKvStoreServiceGrpc.RubbleKvStoreServiceStub> headStub;
         private final List<ManagedChannel> headChan;
-        private String head_addr, tail_addr;
+        private int num_shards, num_channels;
     
-        public ReplicatorService(String head_addr, String tail_addr) {   
+        public ReplicatorService(String[][] shards) {   
             tail_obs = new ConcurrentHashMap<>();
             head_obs = new ConcurrentHashMap<>();
             ycsb_obs = new ConcurrentHashMap<>();
-            System.out.println("replicator start service with head: " + head_addr + " tail: " + tail_addr);
             // create channels --> default to 16 channels
             this.tailChan = new ArrayList<>();
             this.tailStub = new ArrayList<>();
             this.headChan = new ArrayList<>();
             this.headStub = new ArrayList<>();
-            this.head_addr = head_addr;
-            this.tail_addr = tail_addr;
-            allocChannel(tail_addr, 16, this.tailChan, this.tailStub);
-            allocChannel(head_addr, 16, this.headChan, this.headStub);
+            this.num_channels = 16;
+            setupShards(shards, this.num_channels);
+        }
+
+        private void setupShards(String[][] shards, int num_chan) {
+            this.num_shards = shards.length;
+            System.out.println("Replicator sees " + this.num_shards + " shards");
+            for(String[] s: shards){
+                // TODO: add assert format here
+                System.out.println("shard head: " + s[0] + " shard tail: " + s[1]);
+                allocChannel(s[0], num_chan, this.headChan, this.headStub);
+                allocChannel(s[1], num_chan, this.tailChan, this.tailStub);
+            }
+            System.out.println("number of channels: " + this.headChan.size());
         }
         
         // helper function to pre-allocate channels to communicate with shard heads and tails
@@ -122,28 +134,44 @@ public class Replicator {
             // create tail client that will use the write-back-ycsb stream
             // note that we create one tail observer per thread
             // this.ycsb_obs.put(tid, ob);
-            this.ycsb_ob = ob;
-            initTailOb(tid);
+            // this.ycsb_ob = ob;
+            final ConcurrentHashMap<Integer, StreamObserver<Op>> tail_clients = initTailOb(tid);
+
             initHeadOb(tid);
             final ConcurrentHashMap<Long, StreamObserver<OpReply>> dup = this.ycsb_obs;
             System.out.println("dup: " + dup.mappingCount());
             // create the ycsb-op processing logic with the tail client
             // System.out.println("tail_client: " + this.obs.containsKey(tid));
-            final StreamObserver<Op> tail_client = this.tail_obs.get(tid);
+            // final StreamObserver<Op> tail_client = this.tail_obs.get(tid);
             final StreamObserver<Op> head_client = this.head_obs.get(tid);
+            final int mod_shard = this.num_shards;
+            // final int mod_shard = 2;
+            System.out.println("num_shard " + mod_shard);
             return new StreamObserver<Op>(){
                 int opcount = 0;
-                // Set set = new HashSet();
+                boolean hasAdded = false;
                 @Override
                 public void onNext(Op op) {
-                    // GET --> go to TAIL
+                    
                     // if (op.getOpsCount() > 0 && op.getOps(0).getType().getNumber() == 0) {
-                    dup.put(op.getId(), ob);
+                    if(!hasAdded) {
+                        if(dup.containsKey(op.getId())){
+                            System.out.println("duplicate key!");
+                        }
+                        dup.put(op.getId(), ob);
+                        hasAdded = true;
+                    }
+                    // GET --> go to TAIL
                     if (op.getType().getNumber() == 0) {
-                        // System.out.println("tid: " + tid + " Thread " + op.getId() + " onNext -> tail");
-                        tail_client.onNext(op);
+                        Long idx = op.getId();
+                        int mod = (idx.intValue())%mod_shard;
+                        // System.out.println("op key " + op.getKey() + " shard: " + mod + " onNext -> tail");
+                        // if(op.getId()%mod_shard == 0) {
+                        // System.out.println("contains key: " + tail_clients.containsKey(mod));
+                        tail_clients.get(mod).onNext(op);
+                        // }
                     } else { // other ops going to HEAD
-                        // System.out.println("tid: " + tid + " Thread " + Thread.currentThread().getId() + " onNext -> head");
+                        // System.out.println("op key " + op.getKey() + " onNext -> head");
                         head_client.onNext(op);
                     }
                 }
@@ -162,11 +190,12 @@ public class Replicator {
 
         @Override
         public StreamObserver<OpReply> sendReply(final StreamObserver<Reply> ob) {
-            final StreamObserver<OpReply> ycsb_tmp = this.ycsb_ob;
+            // final StreamObserver<OpReply> ycsb_tmp = this.ycsb_ob;
             final ConcurrentHashMap<Long, StreamObserver<OpReply>> ycsb_tmps = this.ycsb_obs;
             System.out.println("tmps: " + ycsb_tmps.mappingCount());
             return new StreamObserver<OpReply>(){
                 int opcount = 0;
+                
                 @Override
                 public void onNext(OpReply op) {
                     ++opcount;
@@ -195,24 +224,30 @@ public class Replicator {
         }
         
         // add observer that could write to tail into Map<StreamObserver> obs
-        private void initTailOb(Long id) {
+        private ConcurrentHashMap<Integer, StreamObserver<Op>> initTailOb(Long id) {
             // replies from tail node
-            this.tail_obs.put(id, this.tailStub.get(id.intValue()%16).doOp( new StreamObserver<OpReply>(){
-                @Override
-                public void onNext(OpReply reply) {
-                    System.out.println("reply from tail ob");
-                }
+            ConcurrentHashMap<Integer, StreamObserver<Op>> newMap = new ConcurrentHashMap<>();
+            for(int i = 0; i < this.num_shards; i++) {
+                this.tail_obs.put(id*10+i, this.tailStub.get(id.intValue()%16+i*16).doOp( new StreamObserver<OpReply>(){
+                    @Override
+                    public void onNext(OpReply reply) {
+                        System.out.println("reply from tail ob");
+                    }
 
-                @Override
-                public void onError(Throwable t) {
-                    // System.err.println("tail observer failed: " + Status.fromThrowable(t));
-                }
+                    @Override
+                    public void onError(Throwable t) {
+                        // System.err.println("tail observer failed: " + Status.fromThrowable(t));
+                    }
 
-                @Override
-                public void onCompleted() {
-                    System.out.println("tail node reply stream completed");
-                }
-            }));
+                    @Override
+                    public void onCompleted() {
+                        System.out.println("tail node reply stream completed");
+                    }
+                }));
+                newMap.put(i, this.tail_obs.get(id*10+i));
+                System.out.println("added " + i);
+            }
+            return newMap;
         }
 
         // add an observer to comm with head nodes into Map<long, StreamObserver<Op>> head_obs

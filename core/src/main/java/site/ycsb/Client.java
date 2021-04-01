@@ -341,7 +341,7 @@ public final class Client {
 
       final Map<MyThread, ClientThread> threads = new HashMap<>(threadcount);
       // String targetAddr = "128.110.153.114:50051";
-      String targetAddr = "128.110.153.93:50050";
+      String targetAddr = "128.110.155.63:50050";
       System.out.println("communicating with replicator at " + targetAddr);
       int numChan = 8;
       List<ManagedChannel> chans = new ArrayList<>();
