@@ -341,17 +341,17 @@ public final class Client {
 
       final Map<MyThread, ClientThread> threads = new HashMap<>(threadcount);
       // String targetAddr = "128.110.153.114:50051";
-      String targetAddr = "128.110.155.63:50050";
+      String targetAddr = "128.110.154.50:50050";
       System.out.println("communicating with replicator at " + targetAddr);
       int numChan = 8;
       List<ManagedChannel> chans = new ArrayList<>();
       for(int i = 0; i<numChan; i++) {
         chans.add(ManagedChannelBuilder.forTarget(targetAddr).usePlaintext().build());
-        
       }
       int idx = 0;
+      int batch_size = 10;
       for(ClientThread client: clients) {
-        threads.put(new MyThread(tracer.wrap(client, "ClientThread"), chans.get(idx%numChan), client.getOpsTodo()), client);
+        threads.put(new MyThread(tracer.wrap(client, "ClientThread"), chans.get(idx%numChan), client.getOpsTodo(), batch_size), client);
         idx++;
       }
       st = System.currentTimeMillis();

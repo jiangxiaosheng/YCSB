@@ -18,13 +18,17 @@ public class MyThread extends Thread {
   private StreamObserver<Op> observer;
   private final CountDownLatch latch;
   private final RubbleKvStoreServiceGrpc.RubbleKvStoreServiceStub asyncStub;
+  private final int batch_size;
+  private Op.Builder op_builder;
 
-  public MyThread(Runnable r, Channel channel, long target) {
+  public MyThread(Runnable r, Channel channel, long target, int batch) {
     this.r = r;
     this.target = target;
     this.sendCount = 0;
     this.asyncStub = RubbleKvStoreServiceGrpc.newStub(channel);
+    this.batch_size = batch;
     this.latch = this.createObserver();
+    this.op_builder = Op.newBuilder();
   }
 
   public void run() {
@@ -40,9 +44,11 @@ public class MyThread extends Thread {
       @Override
       public void onNext(OpReply reply) {
         OpReply r  = reply;
-        // System.out.println("reply: " + reply.getType() + "status: " + reply.getStatus());
+        // System.out.println("reply: " + reply.getReplies(0).getKey() /*+ "status: " + reply.getStatus()*/);
         // System.out.println("recvCount: " + recvCount + " tar: " + tar);
-        if(++recvCount == tar) {
+        recvCount += r.getRepliesCount();
+        if(recvCount == tar) {
+          System.out.println("recvCount: " + recvCount + " met target");
           finishLatch.countDown();
         }
       }
@@ -63,12 +69,16 @@ public class MyThread extends Thread {
   }
 
   public void onNext(String k, String v, int seq, int op) {
-    Op operation = Op.newBuilder().setKey(k).setValue(v)
-                     .setId(this.getId()).setType(Op.OpType.forNumber(op)).build();
-    // Op operation = Op.newBuilder().setKey(k)
-    //                  .setId(this.getId()).setType(Op.OpType.forNumber(op)).build();
-    this.observer.onNext(operation);
+    SingleOp operation = SingleOp.newBuilder().setKey(k).setValue(v)
+                     .setId(Thread.currentThread().getId()).setType(SingleOp.OpType.forNumber(op)).build();
+    this.op_builder.addOps(operation);
     this.sendCount++;
+    if (this.sendCount > 0 && (this.sendCount % this.batch_size == 0 || this.sendCount == this.target)) {
+      Op tmp = this.op_builder.build();
+      // System.out.println("outgoing op size: " + tmp.getOpsCount() + " batch size: " + this.batch_size + "sendCount: " + this.sendCount);
+      this.observer.onNext(tmp);
+      this.op_builder = Op.newBuilder();
+    }
     // System.out.println("sendCount: " + sendCount);
     if (this.sendCount == this.target) {
       this.observer.onCompleted();
