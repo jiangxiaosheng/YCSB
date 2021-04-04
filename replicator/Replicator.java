@@ -68,10 +68,11 @@ public class Replicator {
 
     public static void main(String[] args) throws Exception {
         // Replicator replicator = new Replicator(50050, "128.110.153.102:50051", "128.110.153.93:50052");
-        int num_shards = 2;
+        int num_shards = 1;
         String[][] shards = new String[num_shards][2];
-        shards[0] = new String[]{"128.110.153.93:50051", "128.110.153.93:50052"};
-        shards[1] = new String[]{"128.110.153.102:50051", "128.110.153.102:50052"};
+        // shards[0] = new String[]{"128.110.154.78:50051", "128.110.154.78:50052"};
+        shards[0] = new String[]{"128.110.154.78:50051", "128.110.154.78:50052"};
+        // shards[1] = new String[]{"128.110.153.102:50051", "128.110.153.102:50052"};
         Replicator replicator = new Replicator(50050, shards);
         replicator.start();
         replicator.blockUntilShutdown();
@@ -97,7 +98,7 @@ public class Replicator {
             this.tailStub = new ArrayList<>();
             this.headChan = new ArrayList<>();
             this.headStub = new ArrayList<>();
-            this.num_channels = 16;
+            this.num_channels = 1;
             setupShards(shards, this.num_channels);
         }
 
@@ -146,26 +147,30 @@ public class Replicator {
                 @Override
                 public void onNext(Op op) {
                     
-                    // if (op.getOpsCount() > 0 && op.getOps(0).getType().getNumber() == 0) {
+                    // ignore if empty op
+                    assert op.getOpsCount() > 0:"empty op received";
+                    opcount += op.getOpsCount();
+                    Long idx = op.getOps(0).getId();
+                    int mod = (idx.intValue())%mod_shard;
+                    
+                    // add the observer to map and check if overriding any other thread
                     if(!hasAdded) {
-                        if(dup.containsKey(op.getId())){
-                            System.out.println("duplicate key!");
+                        if(dup.containsKey(idx)){
+                            System.out.println("duplicate key " + idx);
                         }
-                        dup.put(op.getId(), ob);
+                        dup.put(idx, ob);
                         hasAdded = true;
                     }
-                    Long idx = op.getId();
-                    int mod = (idx.intValue())%mod_shard;
+                    // assuming that each batch is of the same Op type
                     // GET --> go to TAIL
-                    if (op.getType().getNumber() == 0) {
-                       
-                        // System.out.println("op key " + op.getKey() + " shard: " + mod + " onNext -> tail");
-                        // if(op.getId()%mod_shard == 0) {
-                        // System.out.println("contains key: " + tail_clients.containsKey(mod));
+                    if (op.getOps(0).getType().getNumber() == 0) {
+                        // System.out.println("op key " + op.getOps(0).getKey() + " id: " + idx + " shard: " + mod + " onNext -> tail");
                         tail_clients.get(mod).onNext(op);
                         // }
                     } else { // other ops going to HEAD
                         // System.out.println("op key " + op.getKey() + " onNext -> head");
+                        // System.out.println("op key " + op.getOps(0).getKey() + " id: " + idx + " shard: " + mod + " onNext -> head");
+                        // System.out.println("op sent " + opcount + " id: " + idx + " key: " + op.getOps(0).getKey() + " onNext -> head");
                         head_clients.get(mod).onNext(op);
                     }
                 }
@@ -178,6 +183,7 @@ public class Replicator {
                 @Override
                 public void onCompleted() {
                     System.out.println("ycsb incoming stream completed");
+                    
                 }
             };  
         }
@@ -192,25 +198,32 @@ public class Replicator {
                 
                 @Override
                 public void onNext(OpReply op) {
-                    ++opcount;
+                    assert op.getRepliesCount() >0;
+                    opcount += op.getRepliesCount();
                     if(opcount % 100000 == 0) {
-                        System.out.println("op: " + op.getType() + " key" + op.getKey() + " id: " + op.getId());
+                    // if (opcount == 250) {
+                        // System.out.println("op: " + op.getType() + " key" + op.getKey() + " id: " + op.getId() + " count: " + opcount);
+                        System.out.println("OpReply count" + opcount + " id: " + op.getReplies(0).getId());
                     }
                     // System.out.println("SendReply forward to ycsb, ycsb is alive: " + !(ycsb_tmp == null));
-                    ycsb_tmps.get(op.getId()).onNext(op);
+                    try {
+                        ycsb_tmps.get(op.getReplies(0).getId()).onNext(op);
+                    } catch (Exception e) {
+                        System.out.println("at opcount: " + opcount + " error connecting to ycsb tmp ob " + op.getReplies(0).getId());
+                        System.out.println("first key: " + op.getReplies(0).getKey());
+                    }
                     // System.out.println("opcount: " + (++opcount));
                 }
 
                 @Override
                 public void onError(Throwable t) {
                     // System.err.println("SendReply ob failed: " + Status.fromThrowable(t));
-                    // ycsb_tmp.onCompleted();
                 }
 
                 @Override
                 public void onCompleted() {
                     System.out.println("sendReply ob completed");
-                    // ycsb_tmp.onCompleted();
+                    
                 }
             };  
             
@@ -223,7 +236,7 @@ public class Replicator {
             ConcurrentHashMap<Integer, StreamObserver<Op>> newMap = new ConcurrentHashMap<>();
             StreamObserver<Op> tmp;
             for(int i = 0; i < this.num_shards; i++) {
-                tmp = this.tailStub.get(id.intValue()%16+i*16).doOp( new StreamObserver<OpReply>(){
+                tmp = this.tailStub.get(id.intValue()%this.num_channels+i*this.num_channels).doOp( new StreamObserver<OpReply>(){
                     @Override
                     public void onNext(OpReply reply) {
                         System.out.println("reply from tail ob");
@@ -250,7 +263,7 @@ public class Replicator {
             ConcurrentHashMap<Integer, StreamObserver<Op>> newMap = new ConcurrentHashMap<>();
             StreamObserver<Op> tmp;
             for(int i = 0; i < this.num_shards; i++) {
-                tmp = this.headStub.get(id.intValue()%16 + i*16).doOp( new StreamObserver<OpReply>(){
+                tmp = this.headStub.get(id.intValue()%this.num_channels + i*this.num_channels).doOp( new StreamObserver<OpReply>(){
                     @Override
                     public void onNext(OpReply reply) {
                         // do nothing on replies from primary  
