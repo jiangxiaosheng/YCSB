@@ -435,6 +435,13 @@ public class RocksDBClient extends DB {
           cfOptions = getDefaultColumnFamilyOptions(name);
         } else {
           cfOptions = new ColumnFamilyOptions().optimizeLevelStyleCompaction();
+          cfOptions.setNumLevels(5);
+
+          cfOptions.setMaxBytesForLevelBase(256*1024*1024);
+          cfOptions.setCompressionType(CompressionType.NO_COMPRESSION);
+
+          cfOptions.setWriteBufferSize(64*1024*1024);
+          cfOptions.setTargetFileSizeBase(64*1024*1024);
         }
 
         final ColumnFamilyHandle cfHandle = rocksDb.createColumnFamily(
