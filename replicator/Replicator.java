@@ -12,8 +12,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -71,7 +69,7 @@ public class Replicator {
         int num_shards = 1;
         String[][] shards = new String[num_shards][2];
         // shards[0] = new String[]{"128.110.154.78:50051", "128.110.154.78:50052"};
-        shards[0] = new String[]{"128.110.154.78:50051", "128.110.154.78:50052"};
+        shards[0] = new String[]{"128.110.153.244:50051", "128.110.153.244:50052"};
         // shards[1] = new String[]{"128.110.153.102:50051", "128.110.153.102:50052"};
         Replicator replicator = new Replicator(50050, shards);
         replicator.start();
@@ -195,6 +193,7 @@ public class Replicator {
             System.out.println("tmps: " + ycsb_tmps.mappingCount());
             return new StreamObserver<OpReply>(){
                 int opcount = 0;
+                StreamObserver<OpReply> tmp;
                 
                 @Override
                 public void onNext(OpReply op) {
@@ -207,7 +206,11 @@ public class Replicator {
                     }
                     // System.out.println("SendReply forward to ycsb, ycsb is alive: " + !(ycsb_tmp == null));
                     try {
-                        ycsb_tmps.get(op.getReplies(0).getId()).onNext(op);
+                        // need to add lock here to guarantee one write at a time
+                        tmp = ycsb_tmps.get(op.getReplies(0).getId());
+                        synchronized(tmp){
+                            tmp.onNext(op);
+                        }
                     } catch (Exception e) {
                         System.out.println("at opcount: " + opcount + " error connecting to ycsb tmp ob " + op.getReplies(0).getId());
                         System.out.println("first key: " + op.getReplies(0).getKey());

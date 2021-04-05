@@ -19,7 +19,7 @@ public class MyThread extends Thread {
   private final CountDownLatch latch;
   private final RubbleKvStoreServiceGrpc.RubbleKvStoreServiceStub asyncStub;
   private final int batch_size;
-  private Op.Builder op_builder;
+  private Op.Builder put_builder, get_builder;
 
   public MyThread(Runnable r, Channel channel, long target, int batch) {
     this.r = r;
@@ -28,7 +28,8 @@ public class MyThread extends Thread {
     this.asyncStub = RubbleKvStoreServiceGrpc.newStub(channel);
     this.batch_size = batch;
     this.latch = this.createObserver();
-    this.op_builder = Op.newBuilder();
+    this.get_builder = Op.newBuilder();
+    this.put_builder = Op.newBuilder();
   }
 
   public void run() {
@@ -71,16 +72,33 @@ public class MyThread extends Thread {
   public void onNext(String k, String v, int seq, int op) {
     SingleOp operation = SingleOp.newBuilder().setKey(k).setValue(v)
                      .setId(Thread.currentThread().getId()).setType(SingleOp.OpType.forNumber(op)).build();
-    this.op_builder.addOps(operation);
-    this.sendCount++;
-    if (this.sendCount > 0 && (this.sendCount % this.batch_size == 0 || this.sendCount == this.target)) {
-      Op tmp = this.op_builder.build();
-      // System.out.println("outgoing op size: " + tmp.getOpsCount() + " batch size: " + this.batch_size + "sendCount: " + this.sendCount);
-      this.observer.onNext(tmp);
-      this.op_builder = Op.newBuilder();
+    // GET op
+    if (op == 0) {
+      this.get_builder.addOps(operation);
+      if (this.get_builder.getOpsCount() == this.batch_size) {
+        this.observer.onNext(this.get_builder.build());
+        this.get_builder = Op.newBuilder();
+      }
+    } else { // PUT op
+      this.put_builder.addOps(operation);
+      if (this.put_builder.getOpsCount() == this.batch_size) {
+        this.observer.onNext(this.put_builder.build());
+        this.put_builder = Op.newBuilder();
+        // System.out.println("this put builder cur size: " + this.put_builder.getOpsCount());
+      }
     }
-    // System.out.println("sendCount: " + sendCount);
+
+    this.sendCount++;
     if (this.sendCount == this.target) {
+      // System.out.println("outgoing op size: " + tmp.getOpsCount() + " batch size: " + this.batch_size + "sendCount: " + this.sendCount);
+      if (this.get_builder.getOpsCount() > 0) {
+        System.out.println("tail get: " + this.get_builder.getOpsCount());
+        this.observer.onNext(this.get_builder.build());
+      }
+      if (this.put_builder.getOpsCount() > 0) {
+        System.out.println("tail put: " + this.put_builder.getOpsCount());
+        this.observer.onNext(this.put_builder.build());
+      }
       this.observer.onCompleted();
       this.waitLatch();
     }
