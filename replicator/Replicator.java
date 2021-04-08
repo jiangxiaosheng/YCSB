@@ -7,6 +7,8 @@ import io.grpc.Status;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.FileInputStream;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -16,6 +18,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.Map;
+import java.util.LinkedHashMap;
+import org.yaml.snakeyaml.Yaml;
+
 
 public class Replicator {
     
@@ -63,14 +69,38 @@ public class Replicator {
         }
     }
     
-
     public static void main(String[] args) throws Exception {
+        System.out.print("Reading configuration file...");
+        Yaml yaml = new Yaml();
+        InputStream inputStream = new FileInputStream("config/test.yml");
+        Map<String, Object> obj = yaml.load(inputStream);
+        System.out.println("Finished");
+        LinkedHashMap<String, Object> rubble_params = (LinkedHashMap<String, Object>)obj.get("rubble_params");
+        LinkedHashMap<String, List<String>> shard_ports = (LinkedHashMap<String, List<String>>)rubble_params.get("shard_ports");
+        int num_shards = (int)rubble_params.get("shard_num");
+        int num_replica = (int)rubble_params.get("replica_num");
+        System.out.println("Shard number: "+num_shards);
+        System.out.println("Replica number(chain length): "+num_replica);
+
         // Replicator replicator = new Replicator(50050, "128.110.153.102:50051", "128.110.153.93:50052");
-        int num_shards = 1;
+        // int num_shards = 1;
         String[][] shards = new String[num_shards][2];
+        // String[][] shards = new String[num_shards][num_replica];
         // shards[0] = new String[]{"128.110.154.78:50051", "128.110.154.78:50052"};
-        shards[0] = new String[]{"128.110.153.244:50051", "128.110.153.244:50052"};
+        // shards[0] = new String[]{"128.110.153.244:50051", "128.110.153.244:50052"};
+
         // shards[1] = new String[]{"128.110.153.102:50051", "128.110.153.102:50052"};
+        int shard_ind = 0;
+        for (String shard_tag: shard_ports.keySet()) {
+            System.out.println("Shard: "+shard_tag);
+            List<String> ports = shard_ports.get(shard_tag);
+            String head_port = ports.get(0);
+            String tail_port = ports.get(ports.size()-1);
+            System.out.println("Head: "+head_port);
+            System.out.println("Tail: "+tail_port);
+            shards[shard_ind] = new String[]{head_port, tail_port};
+            shard_ind++;
+        }
         Replicator replicator = new Replicator(50050, shards);
         replicator.start();
         replicator.blockUntilShutdown();
