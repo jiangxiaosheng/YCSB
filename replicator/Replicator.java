@@ -19,7 +19,9 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.math.BigInteger;
 import org.yaml.snakeyaml.Yaml;
 
 
@@ -82,14 +84,7 @@ public class Replicator {
         System.out.println("Shard number: "+num_shards);
         System.out.println("Replica number(chain length): "+num_replica);
 
-        // Replicator replicator = new Replicator(50050, "128.110.153.102:50051", "128.110.153.93:50052");
-        // int num_shards = 1;
         String[][] shards = new String[num_shards][2];
-        // String[][] shards = new String[num_shards][num_replica];
-        // shards[0] = new String[]{"128.110.154.78:50051", "128.110.154.78:50052"};
-        // shards[0] = new String[]{"128.110.153.244:50051", "128.110.153.244:50052"};
-
-        // shards[1] = new String[]{"128.110.153.102:50051", "128.110.153.102:50052"};
         int shard_ind = 0;
         for (String shard_tag: shard_ports.keySet()) {
             System.out.println("Shard: "+shard_tag);
@@ -150,28 +145,46 @@ public class Replicator {
                 chanList.add(chan);
                 stubList.add(RubbleKvStoreServiceGrpc.newStub(chan));
             }
-        }
+        }                                                                            
 
         @Override
         public StreamObserver<Op> doOp(final StreamObserver<OpReply> ob) {
             // add the write-back-to-ycsb stream to Map
-            // this.ycsb_obs.put(Thread.currentThread().getId(), ob);
              
             final Long tid = Thread.currentThread().getId();
             System.out.println("thread: " + tid + " in doOp");
 
             // create tail client that will use the write-back-ycsb stream
-            // note that we create one tail observer per thread
-            final ConcurrentHashMap<Integer, StreamObserver<Op>> tail_clients = initTailOb(tid);
-            final ConcurrentHashMap<Integer, StreamObserver<Op>> head_clients = initHeadOb(tid);
+            // note that we create one tail observer per thread per shard
+            final ConcurrentHashMap<BigInteger, StreamObserver<Op>> tail_clients = initTailOb(tid);
+            final ConcurrentHashMap<BigInteger, StreamObserver<Op>> head_clients = initHeadOb(tid);
             final ConcurrentHashMap<Long, StreamObserver<OpReply>> dup = this.ycsb_obs;
-            System.out.println("dup: " + dup.mappingCount());
-            // create the ycsb-op processing logic with the tail client
+            //TODO: let cx know about this change
+            final int batch_size = 10;
             final int mod_shard = this.num_shards;
-            System.out.println("num_shard " + mod_shard);
+            final BigInteger big_mod = BigInteger.valueOf(this.num_shards);
+
             return new StreamObserver<Op>(){
                 int opcount = 0;
-                boolean hasAdded = false;
+                // builder to cache put and get requests to each shard
+                HashMap<BigInteger, Op.Builder> put_builder = new HashMap<>();
+                HashMap<BigInteger, Op.Builder> get_builder = new HashMap<>();
+                boolean hasInit = false;    
+                Op.Builder builder_;            
+                
+                private void init(Long idx) {
+                    if(dup.containsKey(idx)){
+                        System.out.println("duplicate key " + idx);
+                    }
+                    dup.put(idx, ob);
+                    for (int i = 0; i < mod_shard; i++) {
+                        System.out.println("BigInteger value of: " + BigInteger.valueOf(i));
+                        put_builder.put(BigInteger.valueOf(i), Op.newBuilder());
+                        get_builder.put(BigInteger.valueOf(i), Op.newBuilder());
+                    }
+                    hasInit = true;
+                }
+
                 @Override
                 public void onNext(Op op) {
                     
@@ -182,24 +195,32 @@ public class Replicator {
                     int mod = (idx.intValue())%mod_shard;
                     
                     // add the observer to map and check if overriding any other thread
-                    if(!hasAdded) {
-                        if(dup.containsKey(idx)){
-                            System.out.println("duplicate key " + idx);
-                        }
-                        dup.put(idx, ob);
-                        hasAdded = true;
+                    if(!hasInit) {
+                        this.init(idx);
                     }
-                    // assuming that each batch is of the same Op type
-                    // GET --> go to TAIL
-                    if (op.getOps(0).getType().getNumber() == 0) {
-                        // System.out.println("op key " + op.getOps(0).getKey() + " id: " + idx + " shard: " + mod + " onNext -> tail");
-                        tail_clients.get(mod).onNext(op);
-                        // }
-                    } else { // other ops going to HEAD
-                        // System.out.println("op key " + op.getKey() + " onNext -> head");
-                        // System.out.println("op key " + op.getOps(0).getKey() + " id: " + idx + " shard: " + mod + " onNext -> head");
-                        // System.out.println("op sent " + opcount + " id: " + idx + " key: " + op.getOps(0).getKey() + " onNext -> head");
-                        head_clients.get(mod).onNext(op);
+                    // TODO: is there a better way to do sharding than converting to BigInteger
+                    // i.e. bitmasking w/o converting to string or use stringbuilder
+                    for(SingleOp sop: op.getOpsList()){
+                        // BigInteger shard_idx = new BigInteger(sop.getKey().getBytes()).mod(big_mod);
+                        BigInteger shard_idx = BigInteger.valueOf(0);
+                        // System.out.println("shard idx: " + shard_idx);
+                        if (sop.getType() == SingleOp.OpType.GET){
+                            builder_ = get_builder.get(shard_idx);
+                            builder_.addOps(sop);
+                            if (builder_.getOpsCount() == batch_size ){
+                                tail_clients.get(shard_idx).onNext(builder_.build());
+                                get_builder.get(shard_idx).clear();
+                                // System.out.println("GET batch to shard: " + shard_idx + " sent");
+                            }
+                        } else { //PUT
+                            builder_ = put_builder.get(shard_idx);
+                            builder_.addOps(sop);
+                            if (builder_.getOpsCount() == batch_size ){
+                                head_clients.get(shard_idx).onNext(builder_.build());
+                                put_builder.get(shard_idx).clear();
+                                // System.out.println("PUT batch to shard: " + shard_idx + " sent");
+                            }
+                        }
                     }
                 }
 
@@ -210,6 +231,20 @@ public class Replicator {
 
                 @Override
                 public void onCompleted() {
+                    // send out all requests in cache 
+                    for (Map.Entry<BigInteger, Op.Builder> entry : put_builder.entrySet()) {
+                        if (entry.getValue().getOpsCount() > 0) {
+                            head_clients.get(entry.getKey()).onNext(entry.getValue().build());
+                            put_builder.get(entry.getKey()).clear();
+                        }
+                    }
+                    for (Map.Entry<BigInteger, Op.Builder> entry : get_builder.entrySet()) {
+                        if (entry.getValue().getOpsCount() > 0) {
+                            tail_clients.get(entry.getKey()).onNext(entry.getValue().build());
+                            put_builder.get(entry.getKey()).clear();
+                        }
+                    }
+
                     System.out.println("ycsb incoming stream completed");
                     
                 }
@@ -218,9 +253,8 @@ public class Replicator {
 
         @Override
         public StreamObserver<OpReply> sendReply(final StreamObserver<Reply> ob) {
-            // final StreamObserver<OpReply> ycsb_tmp = this.ycsb_ob;
             final ConcurrentHashMap<Long, StreamObserver<OpReply>> ycsb_tmps = this.ycsb_obs;
-            System.out.println("tmps: " + ycsb_tmps.mappingCount());
+            // System.out.println("tmps: " + ycsb_tmps.mappingCount());
             return new StreamObserver<OpReply>(){
                 int opcount = 0;
                 StreamObserver<OpReply> tmp;
@@ -229,6 +263,7 @@ public class Replicator {
                 public void onNext(OpReply op) {
                     assert op.getRepliesCount() >0;
                     opcount += op.getRepliesCount();
+                    // System.out.println("opcount: " + opcount);
                     if(opcount % 100000 == 0) {
                     // if (opcount == 250) {
                         // System.out.println("op: " + op.getType() + " key" + op.getKey() + " id: " + op.getId() + " count: " + opcount);
@@ -264,9 +299,9 @@ public class Replicator {
         }
         
         // add observer that could write to tail into Map<StreamObserver> obs
-        private ConcurrentHashMap<Integer, StreamObserver<Op>> initTailOb(Long id) {
+        private ConcurrentHashMap<BigInteger, StreamObserver<Op>> initTailOb(Long id) {
             // replies from tail node
-            ConcurrentHashMap<Integer, StreamObserver<Op>> newMap = new ConcurrentHashMap<>();
+            ConcurrentHashMap<BigInteger, StreamObserver<Op>> newMap = new ConcurrentHashMap<>();
             StreamObserver<Op> tmp;
             for(int i = 0; i < this.num_shards; i++) {
                 tmp = this.tailStub.get(id.intValue()%this.num_channels+i*this.num_channels).doOp( new StreamObserver<OpReply>(){
@@ -285,15 +320,15 @@ public class Replicator {
                         System.out.println("tail node reply stream completed");
                     }
                 });
-                newMap.put(i, tmp);
+                newMap.put(BigInteger.valueOf(i), tmp);
                 // System.out.println("added " + i + " to tail");
             }
             return newMap;
         }
 
         // add an observer to comm with head nodes into Map<long, StreamObserver<Op>> head_obs
-        private ConcurrentHashMap<Integer, StreamObserver<Op>> initHeadOb(Long id) {
-            ConcurrentHashMap<Integer, StreamObserver<Op>> newMap = new ConcurrentHashMap<>();
+        private ConcurrentHashMap<BigInteger, StreamObserver<Op>> initHeadOb(Long id) {
+            ConcurrentHashMap<BigInteger, StreamObserver<Op>> newMap = new ConcurrentHashMap<>();
             StreamObserver<Op> tmp;
             for(int i = 0; i < this.num_shards; i++) {
                 tmp = this.headStub.get(id.intValue()%this.num_channels + i*this.num_channels).doOp( new StreamObserver<OpReply>(){
@@ -312,7 +347,7 @@ public class Replicator {
                         System.out.println("head node reply stream completed");
                     }
                 });
-                newMap.put(i, tmp);
+                newMap.put(BigInteger.valueOf(i), tmp);
                 // System.out.println("added " + i + " to head");
             }
             return newMap;
