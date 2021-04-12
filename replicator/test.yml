@@ -12,3 +12,4 @@ rubble_params:
     shard-1:
       - 10.10.1.2:50051
       - 10.10.1.1:50052
+  batch_size: 5
