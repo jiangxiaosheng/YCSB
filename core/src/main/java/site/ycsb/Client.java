@@ -156,6 +156,16 @@ public final class Client {
    */
   private static StatusThread statusthread = null;
 
+  /**
+   * (rubble) IP address and port for replicator.
+   */
+  private static final String REPLICATOR_ADDR = "replicator_addr";
+
+  /**
+   * (rubble) Batch size for communication with replicator.
+   */
+  private static final String REPLICATOR_BATCH_SIZE = "replicator_batch_size";
+
   /* destination for gRPC */
   // private static String destination = "";
   
@@ -302,6 +312,10 @@ public final class Client {
       targetperthreadperms = targetperthread / 1000.0;
     }
 
+    // rubble: get the replicator address and batch size
+    String replicator_addr = props.getProperty(REPLICATOR_ADDR, "128.110.153.244:50051");
+    int replicator_batch_size = Integer.parseInt(props.getProperty(REPLICATOR_BATCH_SIZE, "10"));
+
     Thread warningthread = setupWarningThread();
     warningthread.start();
 
@@ -340,7 +354,9 @@ public final class Client {
     try (final TraceScope span = tracer.newScope(CLIENT_WORKLOAD_SPAN)) {
 
       final Map<MyThread, ClientThread> threads = new HashMap<>(threadcount);
-      String targetAddr = "128.110.153.244:50051";
+      String targetAddr = replicator_addr; //TODO(rubble): clean variable names
+      int batch_size = replicator_batch_size;
+      // String targetAddr = "128.110.153.244:50051";
       // String targetAddr = "128.110.154.79:50050";
       System.out.println("communicating with replicator at " + targetAddr);
       int numChan = 8;
@@ -349,7 +365,7 @@ public final class Client {
         chans.add(ManagedChannelBuilder.forTarget(targetAddr).usePlaintext().build());
       }
       int idx = 0;
-      int batch_size = 10;
+      // int batch_size = 10;
       for(ClientThread client: clients) {
         threads.put(new MyThread(tracer.wrap(client, "ClientThread"), chans.get(idx%numChan), client.getOpsTodo(), batch_size), client);
         idx++;
@@ -547,7 +563,7 @@ public final class Client {
     return null;
   }
 
-  private static Properties parseArguments(String[] args) {
+private static Properties parseArguments(String[] args) {
     Properties props = new Properties();
     System.err.print("Command line:");
     for (String arg : args) {
@@ -665,6 +681,28 @@ public final class Client {
           System.exit(0);
         }
         // destination = args[argindex];
+        argindex++;
+      } else if (args[argindex].compareTo("-replicator_addr") == 0) {
+        argindex++;
+        if (argindex >= args.length) {
+          usageMessage();
+          System.out.println("Missing argument value for -replicator_addr.");
+          System.exit(0);
+        }
+        String replicator_addr = args[argindex];
+        props.setProperty(REPLICATOR_ADDR, replicator_addr);
+        System.out.println("Set replicator_addr to "+replicator_addr);
+        argindex++;
+      } else if (args[argindex].compareTo("-replicator_batch_size") == 0) {
+        argindex++;
+        if (argindex >= args.length) {
+          usageMessage();
+          System.out.println("Missing argument value for -replicator_batch_size.");
+          System.exit(0);
+        }
+        int replicator_batch_size = Integer.parseInt(args[argindex]);
+        props.setProperty(REPLICATOR_BATCH_SIZE, String.valueOf(replicator_batch_size));
+        System.out.println("Set replicator batch size to "+replicator_batch_size);
         argindex++;
       } else {
         usageMessage();
