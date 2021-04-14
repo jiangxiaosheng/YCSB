@@ -2,6 +2,9 @@
 
 set -ex
 
+cp Replicator.java ./target/rubblejava/
+cp test.yml ./target/config/
+
 cd target/
 YCSB_HOME=/mnt/sdb/YCSB
 
