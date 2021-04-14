@@ -214,12 +214,12 @@ public class Replicator {
                     //     head_clients.get(shard_idx).onNext(op);
                     // }
 
-                    TODO: is there a better way to do sharding than converting to BigInteger
-                    i.e. bitmasking w/o converting to string or use stringbuilder
+                    // TODO: is there a better way to do sharding than converting to BigInteger
+                    // i.e. bitmasking w/o converting to string or use stringbuilder
                     for(SingleOp sop: op.getOpsList()){
                         byte[] by = sop.getKey().getBytes();
                         int shard_idx = by[by.length -1]%mod_shard;
-                        int shard_idx = sop.getKey().getBytes()[10]%mod_shard;
+                        // int shard_idx = sop.getKey().getBytes()[10]%mod_shard;
                         // Long idxxx = sop.getId();
                         // int shard_idx = (idxxx.intValue()) % mod_shard;
                         // System.out.println(shard_idx);
@@ -251,18 +251,18 @@ public class Replicator {
                 @Override
                 public void onCompleted() {
                     // send out all requests in cache 
-                    // for (Map.Entry<Integer, Op.Builder> entry : put_builder.entrySet()) {
-                    //     if (entry.getValue().getOpsCount() > 0) {
-                    //         head_clients.get(entry.getKey()).onNext(entry.getValue().build());
-                    //         put_builder.get(entry.getKey()).clear();
-                    //     }
-                    // }
-                    // for (Map.Entry<Integer, Op.Builder> entry : get_builder.entrySet()) {
-                    //     if (entry.getValue().getOpsCount() > 0) {
-                    //         tail_clients.get(entry.getKey()).onNext(entry.getValue().build());
-                    //         put_builder.get(entry.getKey()).clear();
-                    //     }
-                    // }
+                    for (Map.Entry<Integer, Op.Builder> entry : put_builder.entrySet()) {
+                        if (entry.getValue().getOpsCount() > 0) {
+                            head_clients.get(entry.getKey()).onNext(entry.getValue().build());
+                            put_builder.get(entry.getKey()).clear();
+                        }
+                    }
+                    for (Map.Entry<Integer, Op.Builder> entry : get_builder.entrySet()) {
+                        if (entry.getValue().getOpsCount() > 0) {
+                            tail_clients.get(entry.getKey()).onNext(entry.getValue().build());
+                            put_builder.get(entry.getKey()).clear();
+                        }
+                    }
 
                     System.out.println("Thread: " + tid + " time: " + (System.nanoTime() - start_time ));
                     // System.out.println( " ycsb incoming stream completed");
@@ -284,12 +284,12 @@ public class Replicator {
                     assert op.getRepliesCount() >0;
                     opcount += op.getRepliesCount();
                     // System.out.println("opcount: " + opcount);
-                    if(opcount % 100000 == 0) {
+                    if(opcount %10000 == 0) {
                     // if (opcount == 250) {
                         // System.out.println("op: " + op.getType() + " key" + op.getKey() + " id: " + op.getId() + " count: " + opcount);
                         System.out.println("OpReply count" + opcount + " id: " + op.getReplies(0).getId());
                     }
-                    // System.out.println("SendReply forward to ycsb, ycsb is alive: " + !(ycsb_tmp == null));
+                    System.out.println("SendReply forward to ycsb, opcount: " + opcount);
                     try {
                         // need to add lock here to guarantee one write at a time
                         tmp = ycsb_tmps.get(op.getReplies(0).getId());
