@@ -210,13 +210,14 @@ public class Replicator {
                     //     head_clients.get(shard_idx).onNext(op);
                     // }
 
-                    // TODO: is there a better way to do sharding than converting to BigInteger
-                    // i.e. bitmasking w/o converting to string or use stringbuilder
+                    TODO: is there a better way to do sharding than converting to BigInteger
+                    i.e. bitmasking w/o converting to string or use stringbuilder
                     for(SingleOp sop: op.getOpsList()){
-                        // int shard_idx = sop.getKey().getBytes()[sop.getKey().getBytes().length -1]%mod_shard;
-                        // int shard_idx = sop.getKey().getBytes()[10]%mod_shard;
-                        Long idxxx = sop.getId();
-                        int shard_idx = (idxxx.intValue()) % mod_shard;
+                        byte[] by = sop.getKey().getBytes();
+                        int shard_idx = by[by.length -1]%mod_shard;
+                        int shard_idx = sop.getKey().getBytes()[10]%mod_shard;
+                        // Long idxxx = sop.getId();
+                        // int shard_idx = (idxxx.intValue()) % mod_shard;
                         // System.out.println(shard_idx);
                         if (sop.getType() == SingleOp.OpType.GET){
                             builder_ = get_builder.get(shard_idx);
@@ -246,18 +247,18 @@ public class Replicator {
                 @Override
                 public void onCompleted() {
                     // send out all requests in cache 
-                    for (Map.Entry<Integer, Op.Builder> entry : put_builder.entrySet()) {
-                        if (entry.getValue().getOpsCount() > 0) {
-                            head_clients.get(entry.getKey()).onNext(entry.getValue().build());
-                            put_builder.get(entry.getKey()).clear();
-                        }
-                    }
-                    for (Map.Entry<Integer, Op.Builder> entry : get_builder.entrySet()) {
-                        if (entry.getValue().getOpsCount() > 0) {
-                            tail_clients.get(entry.getKey()).onNext(entry.getValue().build());
-                            put_builder.get(entry.getKey()).clear();
-                        }
-                    }
+                    // for (Map.Entry<Integer, Op.Builder> entry : put_builder.entrySet()) {
+                    //     if (entry.getValue().getOpsCount() > 0) {
+                    //         head_clients.get(entry.getKey()).onNext(entry.getValue().build());
+                    //         put_builder.get(entry.getKey()).clear();
+                    //     }
+                    // }
+                    // for (Map.Entry<Integer, Op.Builder> entry : get_builder.entrySet()) {
+                    //     if (entry.getValue().getOpsCount() > 0) {
+                    //         tail_clients.get(entry.getKey()).onNext(entry.getValue().build());
+                    //         put_builder.get(entry.getKey()).clear();
+                    //     }
+                    // }
 
                     System.out.println("Thread: " + tid + " time: " + (System.nanoTime() - start_time ));
                     // System.out.println( " ycsb incoming stream completed");
