@@ -45,6 +45,7 @@ public class RocksDBClient extends DB {
   static final String PROPERTY_ROCKSDB_DIR = "rocksdb.dir";
   static final String PROPERTY_ROCKSDB_OPTIONS_FILE = "rocksdb.optionsfile";
   private static final String COLUMN_FAMILY_NAMES_FILENAME = "CF_NAMES";
+  private List<Long> insertTimeArray;
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RocksDBClient.class);
 
@@ -69,6 +70,7 @@ public class RocksDBClient extends DB {
           optionsFile = Paths.get(optionsFileString);
           LOGGER.info("RocksDB options file: " + optionsFile);
         }
+        this.insertTimeArray = new ArrayList();
 
         try {
           if (optionsFile != null) {
@@ -103,15 +105,28 @@ public class RocksDBClient extends DB {
 
     RocksDB.loadLibrary();
     OptionsUtil.loadOptionsFromFile(optionsFile.toAbsolutePath().toString(), Env.getDefault(), options, cfDescriptors);
+    final int rocksThreads = Runtime.getRuntime().availableProcessors()*2;
+    System.out.println("number of threads : " + rocksThreads);
+    // running 16 threads by default
+    options.setIncreaseParallelism(16);
+    final Path sstPath = Paths.get("/mnt/sdb/archive_dbs/vanila/sst_dir");
+    final long targetSize = 1000000000L;
+    DbPath dbPath = new DbPath(sstPath, targetSize);
+    final List<DbPath> dbPaths = new ArrayList<>();
+    dbPaths.add(dbPath);
+    options.setDbPaths(dbPaths);
+
     dbOptions = options;
 
     final RocksDB db = RocksDB.open(options, rocksDbDir.toAbsolutePath().toString(), cfDescriptors, cfHandles);
-
+    
     for(int i = 0; i < cfDescriptors.size(); i++) {
       String cfName = new String(cfDescriptors.get(i).getName());
       final ColumnFamilyHandle cfHandle = cfHandles.get(i);
       final ColumnFamilyOptions cfOptions = cfDescriptors.get(i).getOptions();
-
+      // optimize level style compaction
+      // cfOptions.optimizeLevelStyleCompaction();
+      System.out.println("Cf name : " + cfName);
       COLUMN_FAMILIES.put(cfName, new ColumnFamily(cfHandle, cfOptions));
     }
 
@@ -296,7 +311,19 @@ public class RocksDBClient extends DB {
       }
 
       final ColumnFamilyHandle cf = COLUMN_FAMILIES.get(table).getHandle();
+      long startTime = System.nanoTime();
       rocksDb.put(cf, key.getBytes(UTF_8), serializeValues(values));
+      long endTime = System.nanoTime();
+      this.insertTimeArray.add(endTime - startTime);
+      if(insertTimeArray.size() == 1000){
+        long aveTime = 0;
+        for(long t : insertTimeArray){
+          aveTime += t;
+        }
+        System.out.println("average insert time : " + aveTime/1000);
+        insertTimeArray.clear();
+      }
+      System.out.println( "put time : "  + (endTime - startTime) + " nanos ");
 
       return Status.OK;
     } catch(final RocksDBException | IOException e) {
