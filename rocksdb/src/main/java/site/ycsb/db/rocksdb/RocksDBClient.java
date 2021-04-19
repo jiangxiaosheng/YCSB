@@ -28,6 +28,7 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.file.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
@@ -45,6 +46,10 @@ public class RocksDBClient extends DB {
   static final String PROPERTY_ROCKSDB_DIR = "rocksdb.dir";
   static final String PROPERTY_ROCKSDB_OPTIONS_FILE = "rocksdb.optionsfile";
   private static final String COLUMN_FAMILY_NAMES_FILENAME = "CF_NAMES";
+  private List<Long> insertTimeArray;
+  private AtomicLong insertCounter;
+  private long startTime;
+  private long endTime;
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RocksDBClient.class);
 
@@ -70,6 +75,10 @@ public class RocksDBClient extends DB {
           LOGGER.info("RocksDB options file: " + optionsFile);
         }
 
+        this.insertTimeArray = new ArrayList();
+        this.insertCounter = new AtomicLong();
+        this.startTime = System.nanoTime();
+        System.out.println("Array initialized");
         try {
           if (optionsFile != null) {
             rocksDb = initRocksDBWithOptionsFile();
@@ -309,7 +318,36 @@ public class RocksDBClient extends DB {
       }
 
       final ColumnFamilyHandle cf = COLUMN_FAMILIES.get(table).getHandle();
+
+      long startTimeNanos = System.nanoTime();
       rocksDb.put(cf, key.getBytes(UTF_8), serializeValues(values));
+      if(this.insertCounter == null){
+        this.insertCounter = new AtomicLong();
+        this.startTime = System.nanoTime();
+      }
+
+      long currentCount = this.insertCounter.getAndIncrement();
+      if((currentCount > 0) && (currentCount % 1000 == 0)){
+        this.endTime = System.nanoTime();
+        long duration = this.endTime - this.startTime;
+        LOGGER.info(" process 1000 ops in {} micros", duration/1000);
+        this.startTime = System.nanoTime();
+      }
+
+      long endTimeNanos = System.nanoTime();
+      if(this.insertTimeArray == null){
+        this.insertTimeArray = new ArrayList();
+      }
+
+      this.insertTimeArray.add(endTimeNanos - startTimeNanos);
+      if(this.insertTimeArray.size() == 10000){
+        long averageInsertTime = 0;
+        for(long t : this.insertTimeArray){
+          averageInsertTime += t;
+        }
+        LOGGER.info("average insert time : {} nanos ", averageInsertTime / 10000);
+        this.insertTimeArray.clear();
+      }
 
       return Status.OK;
     } catch(final RocksDBException | IOException e) {
