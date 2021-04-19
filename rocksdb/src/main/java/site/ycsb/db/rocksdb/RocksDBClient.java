@@ -116,7 +116,7 @@ public class RocksDBClient extends DB {
     System.out.println("number of threads : " + rocksThreads);
     // running 16 threads by default
     options.setIncreaseParallelism(16);
-    final Path sstPath = Paths.get("/tmp/rocksdb_sst_dir");
+    final Path sstPath = Paths.get("/mnt/sdb/archive_dbs/sst_dir/");
     final long targetSize = 1000000000L;
     DbPath dbPath = new DbPath(sstPath, targetSize);
     final List<DbPath> dbPaths = new ArrayList<>();
@@ -327,10 +327,10 @@ public class RocksDBClient extends DB {
       }
 
       long currentCount = this.insertCounter.getAndIncrement();
-      if((currentCount > 0) && (currentCount % 1000 == 0)){
+      if((currentCount > 0) && (currentCount % 10000 == 0)){
         this.endTime = System.nanoTime();
         long duration = this.endTime - this.startTime;
-        LOGGER.info(" process 1000 ops in {} micros", duration/1000);
+        LOGGER.info("process 10000 ops in {} micros", duration/10000);
         this.startTime = System.nanoTime();
       }
 
