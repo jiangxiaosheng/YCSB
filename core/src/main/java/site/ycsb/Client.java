@@ -286,7 +286,7 @@ public final class Client {
     int threadcount = Integer.parseInt(props.getProperty(THREAD_COUNT_PROPERTY, "1"));
     String dbname = props.getProperty(DB_PROPERTY, "site.ycsb.BasicDB");
     int target = Integer.parseInt(props.getProperty(TARGET_PROPERTY, "0"));
-
+    System.out.println("thread count : " + threadcount);
     //compute the target throughput
     double targetperthreadperms = -1;
     if (target > 0) {

@@ -96,6 +96,7 @@ DATABASES = {
     "rest"         : "site.ycsb.webservice.rest.RestClient",
     "riak"         : "site.ycsb.db.riak.RiakKVClient",
     "rocksdb"      : "site.ycsb.db.rocksdb.RocksDBClient",
+    "rubble"       : "site.ycsb.db.rubble.RubbleClient",
     "s3"           : "site.ycsb.db.S3Client",
     "seaweedfs"    : "site.ycsb.db.seaweed.SeaweedClient",
     "scylla"       : "site.ycsb.db.scylla.ScyllaCQLClient",
