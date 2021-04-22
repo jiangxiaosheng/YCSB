@@ -23,7 +23,7 @@ import java.lang.System;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.math.BigInteger;
+
 import org.yaml.snakeyaml.Yaml;
 
 public class Replicator {
@@ -178,8 +178,10 @@ public class Replicator {
         // builder to cache put and get requests to each shard
         HashMap<Integer, Op.Builder> putBuilders = new HashMap<>();
         HashMap<Integer, Op.Builder> getBuilders = new HashMap<>();
+        Op.Builder builder;
         boolean IsInit = true;    
         long startTimeNanos;
+        int shardNum = 1;
 
         private void init(Long idx) {
           // LOGGER.info("Thread idx: " + tid + " init");
@@ -188,10 +190,14 @@ public class Replicator {
             System.out.println("duplicate key " + idx);
           }
           dup.put(idx, ob);
+          assert shardNum > 0;
           for (int i = 0; i < shardNum; i++) {
             putBuilders.put(i, Op.newBuilder());
+            System.out.println("put builder created and put to the map");
             getBuilders.put(i, Op.newBuilder());
           }
+          builder = Op.newBuilder();
+          System.out.println("builder initialized");
           IsInit = false;
         }
 
@@ -202,16 +208,18 @@ public class Replicator {
           assert op.getOpsCount() > 0:"empty op received";
           opcount += op.getOpsCount();
           Long idx = op.getOps(0).getId();
-          int mod = (idx.intValue())%shardNum;
-            
+        
           // add the observer to map and check if overriding any other thread
           if(IsInit) {
             this.init(idx);
           }
 
+          System.out.println("Received one op");
+
           for(SingleOp sop: op.getOpsList()){
             byte[] by = sop.getKey().getBytes();
             int shardIdx = by[by.length -1]%shardNum;
+            // int shardIdx = 0;
             // int shardIdx = sop.getKey().getBytes()[10]%shardNum;
             // Long idxxx = sop.getId();
             // int shardIdx = (idxxx.intValue()) % shardNum;
@@ -220,15 +228,37 @@ public class Replicator {
               Op.Builder builder = getBuilders.get(shardIdx);
               builder.addOps(sop);
               if(builder.getOpsCount() == batchSize ){
+                // System.out.println("build one Get Op");
                 tailObs.get(shardIdx).onNext(builder.build());
+
+                // OpReply reply;
+                // OpReply.Builder replyBuilder = OpReply.newBuilder();
+                // for(SingleOp _sop: builder.getOpsList()){
+                //     SingleOpReply singleReply = SingleOpReply.newBuilder().setKey(_sop.getKey()).build();
+                //     replyBuilder.addReplies(singleReply);
+                // }
+
+                // reply = replyBuilder.build();
+                // ob.onNext(reply);
                 getBuilders.get(shardIdx).clear();
+
                 // System.out.println("GET batch to shard: " + shardIdx + " sent");
               }
             } else { //PUT
-              Op.Builder builder = putBuilders.get(shardIdx);
+            //   builder = putBuilders.get(shardIdx);
               builder.addOps(sop);
               if (builder.getOpsCount() == batchSize ){
+                // System.out.println("build one Put Op");
                 headObs.get(shardIdx).onNext(builder.build());
+                // OpReply reply;
+                // OpReply.Builder replyBuilder = OpReply.newBuilder();
+                // for(SingleOp _sop: builder.getOpsList()){
+                //     SingleOpReply singleReply = SingleOpReply.newBuilder().setKey(_sop.getKey()).setValue(_sop.getValue()).build();
+                //     replyBuilder.addReplies(singleReply);
+                // }
+                // reply = replyBuilder.build();
+                // ob.onNext(reply);
+                // builder.clear();
                 putBuilders.get(shardIdx).clear();
                 // System.out.println("PUT batch to shard: " + shardIdx + " sent");
               }
@@ -280,7 +310,7 @@ public class Replicator {
         // System.out.println("opReply: " + opReply.getType() + " key" + opReply.getKey() + " id: " + opReply.getId() + " count: " + opCount);
           System.out.println("OpReply count" + opCount + " id: " + opReply.getReplies(0).getId());
         }
-        System.out.println("SendReply forward to ycsb, opCount: " + opCount);
+        // System.out.println("SendReply forward to ycsb, opCount: " + opCount);
         try {
         // need to add lock here to guarantee one write at a time
           tmp = ycsb_tmps.get(opReply.getReplies(0).getId());

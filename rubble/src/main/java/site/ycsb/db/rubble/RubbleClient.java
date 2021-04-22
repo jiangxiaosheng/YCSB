@@ -69,16 +69,18 @@ public class RubbleClient extends DB {
   private long currentOpCount;
   private long targetOpCount;
 
+  private long batchCount;
   private static final Logger LOGGER = LoggerFactory.getLogger(RubbleClient.class);
 
   @GuardedBy("RubbleClient.class") private static int references = 0;
 
   @Override
-  public void init() throws DBException {
+  public void init() throws DBException{
     synchronized(RubbleClient.class) {
       if(this.chan == null) {
         this.props = this.getProperties();
         this.targetAddr = props.getProperty("targetaddr");
+        // this.targetAddr = "0.0.0.0:50050";
         this.batchSize = Integer.parseInt(props.getProperty("batchsize", "1"));
         System.out.println("Target Address : " + targetAddr);
         System.out.println("Batch size : " + batchSize);
@@ -89,8 +91,7 @@ public class RubbleClient extends DB {
         this.targetOpCount = threadOpCount;
 
         this.chan = ManagedChannelBuilder.forTarget(targetAddr).usePlaintext().build();
-        this.asyncStub = RubbleKvStoreServiceGrpc.newStub(chan);
-  
+        this.asyncStub = RubbleKvStoreServiceGrpc.newStub(this.chan);
         this.opBuilder = Op.newBuilder();
 
         final CountDownLatch finishLatch = new CountDownLatch(1);
@@ -211,7 +212,7 @@ public class RubbleClient extends DB {
   @Override
   public Status insert(final String table, final String key, final Map<String, ByteIterator> values) {
     try {
-      this.onNext(key, new String(serializeValues(values)), 4, SingleOp.OpType.PUT_VALUE);
+      this.onNext(key, new String(serializeValues(values)), this.currentOpCount, SingleOp.OpType.PUT_VALUE);
       return Status.OK;
     } catch(final Exception e) {
       LOGGER.error(e.getMessage(), e);
@@ -238,13 +239,14 @@ public class RubbleClient extends DB {
 
     this.opBuilder.addOps(op);
     if (this.opBuilder.getOpsCount() == this.batchSize) {
+      this.batchCount++;
+      System.out.println("sending " + this.batchCount + " th batch");
       this.ob.onNext(this.opBuilder.build());
       this.opBuilder.clear();
     }
 
     this.currentOpCount++;
     if (this.currentOpCount == this.targetOpCount) {
-      // System.out.println("outgoing op size: " + tmp.getOpsCount() + " batch size: " + this.batch_size + "sendCount: " + this.sendCount);
       if (this.opBuilder.getOpsCount() > 0) {
         this.ob.onNext(this.opBuilder.build());
       }
@@ -255,7 +257,8 @@ public class RubbleClient extends DB {
 
   private void waitLatch(){
     try {
-      this.latch.await();
+      // this.latch.await(1, TimeUnit.MINUTES);
+      this.latch.wait();
       System.out.println("returned from latch for thread " + Thread.currentThread().getId());
     } catch(InterruptedException e) {
       e.printStackTrace();
