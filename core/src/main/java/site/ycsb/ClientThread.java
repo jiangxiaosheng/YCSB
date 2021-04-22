@@ -73,6 +73,10 @@ public class ClientThread implements Runnable {
     this.completeLatch = completeLatch;
   }
 
+  public int getThreadId(){
+    return this.threadid;
+  }
+
   public void setThreadId(final int threadId) {
     threadid = threadId;
   }

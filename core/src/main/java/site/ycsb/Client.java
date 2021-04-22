@@ -439,6 +439,7 @@ public final class Client {
           ++threadopcount;
         }
 
+        props.setProperty("threadopcount", String.valueOf(threadopcount));
         ClientThread t = new ClientThread(db, dotransactions, workload, props, threadopcount, targetperthreadperms,
             completeLatch);
         t.setThreadId(threadid);

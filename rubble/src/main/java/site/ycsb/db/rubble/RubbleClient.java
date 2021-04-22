@@ -85,6 +85,7 @@ public class RubbleClient extends DB {
 
         this.currentOpCount = 0;
         final long threadOpCount = Integer.parseInt(props.getProperty("threadopcount"));
+        System.out.println("Target op count : " + threadOpCount);
         this.targetOpCount = threadOpCount;
 
         this.chan = ManagedChannelBuilder.forTarget(targetAddr).usePlaintext().build();
