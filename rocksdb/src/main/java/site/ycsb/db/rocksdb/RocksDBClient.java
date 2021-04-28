@@ -66,7 +66,10 @@ public class RocksDBClient extends DB {
         rocksDbDir = Paths.get(getProperties().getProperty(PROPERTY_ROCKSDB_DIR));
         LOGGER.info("RocksDB data dir: " + rocksDbDir);
 
-        sstDir = Paths.get(getProperties().getProperty(PROPERTY_ROCKSDB_SST_DIR));
+        Properties p  = getProperties();
+        if(p.containsKey(PROPERTY_ROCKSDB_SST_DIR)){
+          sstDir = Paths.get(p.getProperty(PROPERTY_ROCKSDB_SST_DIR));
+        }
         LOGGER.info("RocksDB sst dir: " + sstDir);
 
         String optionsFileString = getProperties().getProperty(PROPERTY_ROCKSDB_OPTIONS_FILE);
@@ -113,11 +116,12 @@ public class RocksDBClient extends DB {
     options.setIncreaseParallelism(16);
     // final Path sstPath = Paths.get("/mnt/sdb/archive_dbs/sst_dir/");
     final long targetSize = 1000000000L;
-    DbPath dbPath = new DbPath(sstDir, targetSize);
-    final List<DbPath> dbPaths = new ArrayList<>();
-    dbPaths.add(dbPath);
-    options.setDbPaths(dbPaths);
-
+    if(sstDir != null){
+      DbPath dbPath = new DbPath(sstDir, targetSize);
+      final List<DbPath> dbPaths = new ArrayList<>();
+      dbPaths.add(dbPath);
+      options.setDbPaths(dbPaths);
+    }
     dbOptions = options;
 
     final RocksDB db = RocksDB.open(options, rocksDbDir.toAbsolutePath().toString(), cfDescriptors, cfHandles);

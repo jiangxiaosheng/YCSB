@@ -8,15 +8,17 @@ ROCKSDB_CONFIG_FILE="./rocksdb/rocksdb_config.ini"
 LOAD_OUT_FILE="load_out.txt"
 TOP_OUT_FILE="cpu_usage.txt"
 
-rm -rf $ROCKSDB_DIR
-rm ${SST_DIR}/*
-
 function remove_or_touch {
     if [ -f $1 ]; then
         rm $1
     fi
     touch $1
 }
+
+[ ! -d "${SST_DIR}" ] && mkdir -p ${SST_DIR}
+
+rm -rf $ROCKSDB_DIR
+rm ${SST_DIR}/*
 
 echo "remove or touch output file"
 remove_or_touch $LOAD_OUT_FILE
