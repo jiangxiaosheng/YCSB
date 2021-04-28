@@ -1,10 +1,10 @@
 ## To build rubble:
 under the YCSB directory, run:  
-```mvn -pl rubble -am clean package```
+```mvn -pl rubble -am clean install```
 
 ## To run the replicator:
 under the YCSB directory, run: 
-```mvn -pl rubble exec:java -Dexec.mainClass=site.ycsb.db.rubble.Replicator```
+```c```
 
 configuration file ```config.yml``` is under ```src/main/resources```
 

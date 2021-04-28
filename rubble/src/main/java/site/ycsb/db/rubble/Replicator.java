@@ -181,7 +181,6 @@ public class Replicator {
         Op.Builder builder;
         boolean IsInit = true;    
         long startTimeNanos;
-        int shardNum = 1;
 
         private void init(Long idx) {
           // LOGGER.info("Thread idx: " + tid + " init");
@@ -193,9 +192,9 @@ public class Replicator {
           assert shardNum > 0;
           for (int i = 0; i < shardNum; i++) {
             putBuilders.put(i, Op.newBuilder());
-            System.out.println("put builder created and put to the map");
             getBuilders.put(i, Op.newBuilder());
           }
+
           builder = Op.newBuilder();
           System.out.println("builder initialized");
           IsInit = false;
@@ -214,8 +213,6 @@ public class Replicator {
             this.init(idx);
           }
 
-          System.out.println("Received one op");
-
           for(SingleOp sop: op.getOpsList()){
             byte[] by = sop.getKey().getBytes();
             int shardIdx = by[by.length -1]%shardNum;
@@ -227,38 +224,17 @@ public class Replicator {
             if (sop.getType() == SingleOp.OpType.GET){
               Op.Builder builder = getBuilders.get(shardIdx);
               builder.addOps(sop);
+
               if(builder.getOpsCount() == batchSize ){
-                // System.out.println("build one Get Op");
+          
                 tailObs.get(shardIdx).onNext(builder.build());
-
-                // OpReply reply;
-                // OpReply.Builder replyBuilder = OpReply.newBuilder();
-                // for(SingleOp _sop: builder.getOpsList()){
-                //     SingleOpReply singleReply = SingleOpReply.newBuilder().setKey(_sop.getKey()).build();
-                //     replyBuilder.addReplies(singleReply);
-                // }
-
-                // reply = replyBuilder.build();
-                // ob.onNext(reply);
                 getBuilders.get(shardIdx).clear();
-
-                // System.out.println("GET batch to shard: " + shardIdx + " sent");
               }
             } else { //PUT
-            //   builder = putBuilders.get(shardIdx);
+              Op.Builder builder = putBuilders.get(shardIdx);
               builder.addOps(sop);
               if (builder.getOpsCount() == batchSize ){
-                // System.out.println("build one Put Op");
                 headObs.get(shardIdx).onNext(builder.build());
-                // OpReply reply;
-                // OpReply.Builder replyBuilder = OpReply.newBuilder();
-                // for(SingleOp _sop: builder.getOpsList()){
-                //     SingleOpReply singleReply = SingleOpReply.newBuilder().setKey(_sop.getKey()).setValue(_sop.getValue()).build();
-                //     replyBuilder.addReplies(singleReply);
-                // }
-                // reply = replyBuilder.build();
-                // ob.onNext(reply);
-                // builder.clear();
                 putBuilders.get(shardIdx).clear();
                 // System.out.println("PUT batch to shard: " + shardIdx + " sent");
               }
@@ -319,6 +295,7 @@ public class Replicator {
             }
 
         } catch (Exception e) {
+          System.out.println("Exception : " + e.getMessage());
           System.out.println("at opCount: " + opCount + " error connecting to ycsb tmp ob " + opReply.getReplies(0).getId());
           System.out.println("first key: " + opReply.getReplies(0).getKey());
         }

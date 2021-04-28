@@ -240,7 +240,7 @@ public class RubbleClient extends DB {
     this.opBuilder.addOps(op);
     if (this.opBuilder.getOpsCount() == this.batchSize) {
       this.batchCount++;
-      System.out.println("sending " + this.batchCount + " th batch");
+      // System.out.println("sending " + this.batchCount + " th batch");
       this.ob.onNext(this.opBuilder.build());
       this.opBuilder.clear();
     }

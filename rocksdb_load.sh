@@ -44,5 +44,5 @@ sudo -S sync; echo 1 | sudo tee /proc/sys/vm/drop_caches
 wait -n
 
 echo -n "CPU Usage : "
-awk '{ total += $9 } END { print total/NR }' $TOP_OUT_FILE
+awk '{ total += $9 } END { print total/NR }' $TOP_OUT_FILE | tee -a ${LOAD_OUT_FILE}
 kill 0
