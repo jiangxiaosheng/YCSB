@@ -109,12 +109,9 @@ public class RocksDBClient extends DB {
 
     RocksDB.loadLibrary();
     OptionsUtil.loadOptionsFromFile(optionsFile.toAbsolutePath().toString(), Env.getDefault(), options, cfDescriptors);
-    // final int rocksThreads = Runtime.getRuntime().availableProcessors()*2;
-
-    // System.out.println("number of threads : " + rocksThreads);
     // running 16 threads by default
     options.setIncreaseParallelism(16);
-    // final Path sstPath = Paths.get("/mnt/sdb/archive_dbs/sst_dir/");
+   
     final long targetSize = 1000000000L;
     if(sstDir != null){
       DbPath dbPath = new DbPath(sstDir, targetSize);
@@ -130,9 +127,6 @@ public class RocksDBClient extends DB {
       String cfName = new String(cfDescriptors.get(i).getName());
       final ColumnFamilyHandle cfHandle = cfHandles.get(i);
       final ColumnFamilyOptions cfOptions = cfDescriptors.get(i).getOptions();
-      // optimize level style compaction
-      // cfOptions.optimizeLevelStyleCompaction();
-      // System.out.println("Cf name : " + cfName);
       COLUMN_FAMILIES.put(cfName, new ColumnFamily(cfHandle, cfOptions));
     }
 

@@ -4,7 +4,7 @@ under the YCSB directory, run:
 
 ## To run the replicator:
 under the YCSB directory, run: 
-```c```
+```mvn -pl rubble exec:java -Dexec.mainClass=site.ycsb.db.rubble.Replicator```
 
 configuration file ```config.yml``` is under ```src/main/resources```
 

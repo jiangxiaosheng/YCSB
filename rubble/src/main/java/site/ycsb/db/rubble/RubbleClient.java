@@ -18,6 +18,7 @@
 package site.ycsb.db.rubble;
 
 import site.ycsb.*;
+import site.ycsb.ClientThread;
 import site.ycsb.Status;
 import net.jcip.annotations.GuardedBy;
 import org.slf4j.Logger;
@@ -29,6 +30,7 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 // import java.util.concurrent.ConcurrentHashMap;
 // import java.util.concurrent.ConcurrentMap;
 // import java.util.concurrent.locks.Lock;
@@ -50,6 +52,8 @@ import rubblejava.RubbleKvStoreServiceGrpc.RubbleKvStoreServiceStub;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
+ * RubbleCient class, talks to the replicator
+ * each client creates one channel, and send Op through the channel
  */
 public class RubbleClient extends DB {
 
@@ -69,6 +73,9 @@ public class RubbleClient extends DB {
   private long currentOpCount;
   private long targetOpCount;
 
+  private static long recordCount;
+  private static AtomicLong totalOpCount;
+
   private long batchCount;
   private static final Logger LOGGER = LoggerFactory.getLogger(RubbleClient.class);
 
@@ -80,14 +87,16 @@ public class RubbleClient extends DB {
       if(this.chan == null) {
         this.props = this.getProperties();
         this.targetAddr = props.getProperty("targetaddr");
-        // this.targetAddr = "0.0.0.0:50050";
         this.batchSize = Integer.parseInt(props.getProperty("batchsize", "1"));
-        System.out.println("Target Address : " + targetAddr);
-        System.out.println("Batch size : " + batchSize);
 
         this.currentOpCount = 0;
+        recordCount = Integer.parseInt(props.getProperty("recordcount"));
+        if(totalOpCount == null){
+          totalOpCount = new AtomicLong();
+        }
+    
         final long threadOpCount = Integer.parseInt(props.getProperty("threadopcount"));
-        System.out.println("Target op count : " + threadOpCount);
+        // System.out.println("Target op count : " + threadOpCount);
         this.targetOpCount = threadOpCount;
 
         this.chan = ManagedChannelBuilder.forTarget(targetAddr).usePlaintext().build();
@@ -102,24 +111,25 @@ public class RubbleClient extends DB {
           @Override
           public void onNext(OpReply reply) {
             recvCount += reply.getRepliesCount();
+            // System.out.println("Client " + Thread.currentThread().getId() + " Received " + recvCount + " replies");
             if(recvCount == target) {
               System.out.println("recvCount: " + recvCount + " met target");
-              finishLatch.countDown();
+              latch.countDown();
             }
           }
 
           @Override
           public void onError(Throwable t) {
             System.err.println("get failed " + io.grpc.Status.fromThrowable(t));
-            finishLatch.countDown();
+            latch.countDown();
           }
 
           @Override
           public void onCompleted() {
-            finishLatch.countDown();
+            latch.countDown();
           }
         });
-        System.out.println("client initialized");
+        // System.out.println("client initialized");
       }
       references++;
     }
@@ -233,6 +243,7 @@ public class RubbleClient extends DB {
 
   private void onNext(String k, String v, long id, int opType) {
 
+    id = this.totalOpCount.addAndGet(1);
     SingleOp op = SingleOp.newBuilder().setKey(k).setValue(v).
                           setId(id).setType(SingleOp.OpType.forNumber(opType)).
                           build();
@@ -250,25 +261,27 @@ public class RubbleClient extends DB {
       if (this.opBuilder.getOpsCount() > 0) {
         this.ob.onNext(this.opBuilder.build());
       }
+      // System.out.println("Client " + Thread.currentThread().getId() + " sent out " + this.targetOpCount + " in total");
       this.ob.onCompleted();
       this.waitLatch();
     }
   }
 
   private void waitLatch(){
-    try {
-      // this.latch.await(1, TimeUnit.MINUTES);
-      this.latch.wait();
-      System.out.println("returned from latch for thread " + Thread.currentThread().getId());
-    } catch(InterruptedException e) {
-      e.printStackTrace();
+    synchronized(this.latch){
+      try {
+        // this.latch.await(1, TimeUnit.MINUTES);
+        this.latch.await();
+        System.out.println("returned from latch for thread " + Thread.currentThread().getId());
+      } catch(InterruptedException e) {
+        e.printStackTrace();
+      }
     }
   }
 
   // private Map<String, ByteIterator> deserializeValues(final byte[] values, final Set<String> fields,
   //     final Map<String, ByteIterator> result) {
   //   final ByteBuffer buf = ByteBuffer.allocate(4);
-
   //   int offset = 0;
   //   while(offset < values.length) {
   //     buf.put(values, offset, 4);
@@ -289,10 +302,8 @@ public class RubbleClient extends DB {
   //     if(fields == null || fields.contains(key)) {
   //       result.put(key, new ByteArrayByteIterator(values, offset, valueLen));
   //     }
-
   //     offset += valueLen;
   //   }
-
   //   return result;
   // }
 
