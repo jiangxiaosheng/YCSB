@@ -106,8 +106,6 @@ public class Replicator {
 
     //TODO: find a better way than round-robin to send replies back to clients
     private static class ReplicatorService extends RubbleKvStoreServiceGrpc.RubbleKvStoreServiceImplBase {
-        private static ConcurrentHashMap<Long, StreamObserver<Op>> tail_obs;
-        private static ConcurrentHashMap<Long, StreamObserver<Op>> head_obs;
         private static ConcurrentHashMap<Long, StreamObserver<OpReply>> ycsb_obs;
         private final List<ManagedChannel> tailChan;
         private final List<ManagedChannel> headChan;
@@ -115,13 +113,11 @@ public class Replicator {
         private static final Logger LOGGER = Logger.getLogger(ReplicatorService.class.getName());
     
         public ReplicatorService(String[][] shards, int batch_size) {   
-            tail_obs = new ConcurrentHashMap<>();
-            head_obs = new ConcurrentHashMap<>();
             ycsb_obs = new ConcurrentHashMap<>();
             // create channels --> default to 16 channels
             this.tailChan = new ArrayList<>();
             this.headChan = new ArrayList<>();
-            this.num_channels = 1;
+            this.num_channels = 16;
             this.batch_size = batch_size;
             System.out.println("batch_size: "+this.batch_size);
             setupShards(shards, this.num_channels);
@@ -183,9 +179,6 @@ public class Replicator {
                     }
                     dup.put(idx, ob);
                     for (int i = 0; i < mod_shard; i++) {
-                        // System.out.println("BigInteger value of: " + BigInteger.valueOf(i));
-                        // put_builder.put(BigInteger.valueOf(i), Op.newBuilder());
-                        // get_builder.put(BigInteger.valueOf(i), Op.newBuilder());
                         put_builder.put(i, Op.newBuilder());
                         get_builder.put(i, Op.newBuilder());
                     }
@@ -206,23 +199,12 @@ public class Replicator {
                         this.init(idx);
                     }
 
-                    // Long idxxx = op.getOps(0).getId();
-                    // int shard_idx = (idxxx.intValue()) % mod_shard;
-                    // if (op.getOps(0).getTypeValue() == 0) {
-                    //     tail_clients.get(shard_idx).onNext(op);
-                    // } else {
-                    //     head_clients.get(shard_idx).onNext(op);
-                    // }
-
                     // TODO: is there a better way to do sharding than converting to BigInteger
                     // i.e. bitmasking w/o converting to string or use stringbuilder
                     for(SingleOp sop: op.getOpsList()){
                         byte[] by = sop.getKey().getBytes();
                         int shard_idx = by[by.length -1]%mod_shard;
-                        // int shard_idx = sop.getKey().getBytes()[10]%mod_shard;
-                        // Long idxxx = sop.getId();
-                        // int shard_idx = (idxxx.intValue()) % mod_shard;
-                        // System.out.println(shard_idx);
+
                         if (sop.getType() == SingleOp.OpType.GET){
                             builder_ = get_builder.get(shard_idx);
                             builder_.addOps(sop);
@@ -283,13 +265,10 @@ public class Replicator {
                 public void onNext(OpReply op) {
                     assert op.getRepliesCount() >0;
                     opcount += op.getRepliesCount();
-                    // System.out.println("opcount: " + opcount);
                     if(opcount %10000 == 0) {
-                    // if (opcount == 250) {
-                        // System.out.println("op: " + op.getType() + " key" + op.getKey() + " id: " + op.getId() + " count: " + opcount);
                         System.out.println("OpReply count" + opcount + " id: " + op.getReplies(0).getId());
                     }
-                    System.out.println("SendReply forward to ycsb, opcount: " + opcount);
+                    // System.out.println("SendReply forward to ycsb, opcount: " + opcount);
                     try {
                         // need to add lock here to guarantee one write at a time
                         tmp = ycsb_tmps.get(op.getReplies(0).getId());
@@ -341,7 +320,6 @@ public class Replicator {
                             System.out.println("tail node reply stream completed");
                         }
                     });
-                // newMap.put(BigInteger.valueOf(i), tmp);
                 newMap.put(i, tmp);
                 // System.out.println("added " + i + " to tail");
             }
@@ -370,7 +348,6 @@ public class Replicator {
                             System.out.println("head node reply stream completed");
                         }
                     });
-                // newMap.put(BigInteger.valueOf(i), tmp);
                 newMap.put(i, tmp);
                 // System.out.println("added " + i + " to head");
             }
