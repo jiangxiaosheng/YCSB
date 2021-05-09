@@ -32,11 +32,11 @@ public class Replicator {
     private final Server ycsb_server;
 
     /* constructor */
-    public Replicator(int ycsb_p, String[][] shards, int batch_size) {
+    public Replicator(int ycsb_p, String[][] shards, int batch_size, int chan_num) {
         this.ycsb_port = ycsb_p;
         this.ycsb_server = ServerBuilder.forPort(ycsb_p)
                     .executor(Executors.newFixedThreadPool(64))
-                    .addService(new ReplicatorService(shards, batch_size))
+                    .addService(new ReplicatorService(shards, batch_size, chan_num))
                     .build();
     }
 
@@ -82,10 +82,12 @@ public class Replicator {
         LinkedHashMap<String, List<String>> shard_ports = (LinkedHashMap<String, List<String>>)rubble_params.get("shard_ports");
         int num_shards = (int)rubble_params.get("shard_num");
         int num_replica = (int)rubble_params.get("replica_num");
-        int batch_size = (int)rubble_params.get("batch_size");
+        int batch_size = (int)rubble_params.getOrDefault("batch_size", 1);
+        int chan_num = (int) rubble_params.getOrDefault("chan_num", 1);
         System.out.println("Shard number: "+num_shards);
         System.out.println("Replica number(chain length): "+num_replica);
         System.out.println("Batch size: "+batch_size);
+        System.out.println("Number of channels: " + chan_num);
 
         String[][] shards = new String[num_shards][2];
         int shard_ind = 0;
@@ -99,26 +101,26 @@ public class Replicator {
             shards[shard_ind] = new String[]{head_port, tail_port};
             shard_ind++;
         }
-        Replicator replicator = new Replicator(50050, shards, batch_size);
+        Replicator replicator = new Replicator(50050, shards, batch_size, chan_num);
         replicator.start();
         replicator.blockUntilShutdown();
     }
 
-    //TODO: find a better way than round-robin to send replies back to clients
     private static class ReplicatorService extends RubbleKvStoreServiceGrpc.RubbleKvStoreServiceImplBase {
         private static ConcurrentHashMap<Long, StreamObserver<OpReply>> ycsb_obs;
         private final List<ManagedChannel> tailChan;
         private final List<ManagedChannel> headChan;
         private int num_shards, num_channels, batch_size;
+        // private static int ycsb_batch_size;
+        // private static long count_per_client = Long.MAX_VALUE;
         private static final Logger LOGGER = Logger.getLogger(ReplicatorService.class.getName());
     
-        public ReplicatorService(String[][] shards, int batch_size) {   
+        public ReplicatorService(String[][] shards, int batch_size, int chan_num) {   
             ycsb_obs = new ConcurrentHashMap<>();
             this.tailChan = new ArrayList<>();
             this.headChan = new ArrayList<>();
-            this.num_channels = 16;
             this.batch_size = batch_size;
-            System.out.println("batch_size: "+this.batch_size);
+            this.num_channels = chan_num;
             setupShards(shards, this.num_channels);
         }
 
@@ -126,6 +128,7 @@ public class Replicator {
             this.num_shards = shards.length;
             System.out.println("Replicator sees " + this.num_shards + " shards");
             for(String[] s: shards){
+                // TODO: add assert format here
                 System.out.println("shard head: " + s[0] + " shard tail: " + s[1]);
                 allocChannel(s[0], num_chan, this.headChan);
                 allocChannel(s[1], num_chan, this.tailChan);
@@ -143,15 +146,15 @@ public class Replicator {
 
         @Override
         public StreamObserver<Op> doOp(final StreamObserver<OpReply> ob) {
+            // add the write-back-to-ycsb stream to Map
+             
             final Long tid = Thread.currentThread().getId();
-            System.out.println("thread: " + tid + " in doOp");
+            // System.out.println("thread: " + tid + " in doOp");
             
             // create tail client that will use the write-back-ycsb stream
             // note that we create one tail observer per thread per shard
             final ConcurrentHashMap<Integer, StreamObserver<Op>> tail_clients = initTailOb(tid);
             final ConcurrentHashMap<Integer, StreamObserver<Op>> head_clients = initHeadOb(tid);
-            final ConcurrentHashMap<Long, StreamObserver<OpReply>> dup = this.ycsb_obs;
-            //TODO: let cx know about this change
             final int batch_size = this.batch_size;
             final int mod_shard = this.num_shards;
             final BigInteger big_mod = BigInteger.valueOf(this.num_shards);
@@ -164,15 +167,15 @@ public class Replicator {
                 boolean hasInit = false;    
                 Op.Builder builder_;
                 long start_time;
-
+                long shard1head = 0, shard2head = 0, shard1tail = 0, shard2tail=0;
                 
                 private void init(Long idx) {
                     // LOGGER.info("Thread idx: " + tid + " init");
                     start_time = System.nanoTime();
-                    if(dup.containsKey(idx)){
-                        System.out.println("duplicate key " + idx);
+                    if(ycsb_obs.containsKey(idx)){
+                        // System.out.println("duplicate key " + idx);
                     }
-                    dup.put(idx, ob);
+                    ycsb_obs.put(idx, ob);
                     for (int i = 0; i < mod_shard; i++) {
                         put_builder.put(i, Op.newBuilder());
                         get_builder.put(i, Op.newBuilder());
@@ -182,7 +185,6 @@ public class Replicator {
 
                 @Override
                 public void onNext(Op op) {
-                    
                     // ignore if empty op
                     assert op.getOpsCount() > 0:"empty op received";
                     opcount += op.getOpsCount();
@@ -192,11 +194,17 @@ public class Replicator {
                     // add the observer to map and check if overriding any other thread
                     if(!hasInit) {
                         this.init(idx);
+                        // default that the first batch is of equal size and to max capacity
+                        // synchronized(ReplicatorService.class) {
+                        //     int ops_count = op.getOpsCount();
+                        //     // ycsb_batch_size = (ycsb_batch_size > ops_count)? ycsb_batch_size:ops_count;
+                        // }
                     }
 
                     // TODO: is there a better way to do sharding than converting to BigInteger
                     // i.e. bitmasking w/o converting to string or use stringbuilder
                     for(SingleOp sop: op.getOpsList()){
+                        // sharding
                         byte[] by = sop.getKey().getBytes();
                         int shard_idx = by[by.length -1]%mod_shard;
 
@@ -207,6 +215,11 @@ public class Replicator {
                                 tail_clients.get(shard_idx).onNext(builder_.build());
                                 get_builder.get(shard_idx).clear();
                                 // System.out.println("GET batch to shard: " + shard_idx + " sent");
+                                if (shard_idx == 0) {
+                                    shard1tail += batch_size;
+                                } else {
+                                    shard2tail += batch_size;
+                                }
                             }
                         } else { //PUT
                             builder_ = put_builder.get(shard_idx);
@@ -215,6 +228,11 @@ public class Replicator {
                                 head_clients.get(shard_idx).onNext(builder_.build());
                                 put_builder.get(shard_idx).clear();
                                 // System.out.println("PUT batch to shard: " + shard_idx + " sent");
+                                if (shard_idx == 0) {
+                                    shard1head += batch_size;
+                                } else {
+                                    shard2head += batch_size;
+                                }
                             }
                         }
                     }
@@ -227,21 +245,40 @@ public class Replicator {
 
                 @Override
                 public void onCompleted() {
-                    // send out all requests in cache 
+                    // send out all requests in cache
+                    int i = 0; 
+                    long min_op = Long.MAX_VALUE, counts;
                     for (Map.Entry<Integer, Op.Builder> entry : put_builder.entrySet()) {
+                        i++;
                         if (entry.getValue().getOpsCount() > 0) {
+                            if(i == 1) {
+                                counts = shard1head + entry.getValue().getOpsCount();
+                                System.out.println("Thread: " + tid + " put shard 1 head " + counts);
+                                min_op = counts < min_op?counts:min_op;
+                            } else {
+                                counts = shard2head + entry.getValue().getOpsCount();
+                                System.out.println("Thread: " + tid + " put shard 2 head " + counts);
+                                min_op = counts < min_op?counts:min_op;
+                            }
                             head_clients.get(entry.getKey()).onNext(entry.getValue().build());
                             put_builder.get(entry.getKey()).clear();
                         }
                     }
                     for (Map.Entry<Integer, Op.Builder> entry : get_builder.entrySet()) {
+                        i++;
                         if (entry.getValue().getOpsCount() > 0) {
+                            if(i == 3) {
+                                counts = shard1tail + entry.getValue().getOpsCount();
+                                System.out.println("Thread: " + tid + " put shard 1 tail " + counts);
+                            } else {
+                                counts = shard2tail + entry.getValue().getOpsCount();
+                                System.out.println("Thread: " + tid + " put shard 2 tail " + counts);
+                            }
                             tail_clients.get(entry.getKey()).onNext(entry.getValue().build());
                             put_builder.get(entry.getKey()).clear();
                         }
                     }
-
-                    System.out.println("Thread: " + tid + " time: " + (System.nanoTime() - start_time ));
+                    // System.out.println("Thread: " + tid + " time: " + (System.nanoTime() - start_time ));
                     // System.out.println( " ycsb incoming stream completed");
                     
                 }
@@ -250,10 +287,14 @@ public class Replicator {
 
         @Override
         public StreamObserver<OpReply> sendReply(final StreamObserver<Reply> ob) {
-                        
-            ConcurrentHashMap<StreamObserver<OpReply>, OpReply.Builder> replyBuilders = new ConcurrentHashMap<>();
-            for(StreamObserver<OpReply> observer : ycsb_obs.values()){
-                replyBuilders.put(observer, OpReply.newBuilder());
+            // final int reply_batch = ycsb_batch_size;
+            // ConcurrentHashMap<StreamObserver<OpReply>, OpReply.Builder> replyBuilders = new ConcurrentHashMap<>();
+            // for(StreamObserver<OpReply> observer : ycsb_obs.values()){
+            //     replyBuilders.put(observer, OpReply.newBuilder());
+            // }
+            ConcurrentHashMap<Long, OpReply.Builder> replyBuilders = new ConcurrentHashMap<>();
+            for(Long id : ycsb_obs.keySet()){
+                replyBuilders.put(id, OpReply.newBuilder());
             }
 
             return new StreamObserver<OpReply>(){
@@ -261,35 +302,49 @@ public class Replicator {
                 StreamObserver<OpReply> tmp;
                 
                 @Override
-                public void onNext(OpReply opReply) {
-                    assert opReply.getRepliesCount() >0;
-                    opcount += opReply.getRepliesCount();
+                public void onNext(OpReply op) {
+                    assert op.getRepliesCount() >0;
+                    opcount += op.getRepliesCount();
                     if(opcount %10000 == 0) {
-                        System.out.println("OpReply count" + opcount + " id: " + opReply.getReplies(0).getId());
+                        System.out.println("OpReply thread id: " + Thread.currentThread().getId() + " count: " + opcount);   
                     }
-                    // System.out.println("SendReply forward to ycsb, opcount: " + opcount);
-                    for(SingleOpReply reply : opReply.getRepliesList()){
-                        replyBuilders.get(ycsb_obs.get(reply.getId())).addReplies(reply);
-                    }
+                    // System.out.println("SendReply forwarding to ycsb, opcount: " + opcount);
                     
                     try {
-                        for(Map.Entry<StreamObserver<OpReply>, OpReply.Builder> entry : replyBuilders.entrySet()){
-                            OpReply.Builder replyBuilder = entry.getValue();
-                            // System.out.println("replyBuilder count: " + replyBuilder.getRepliesCount());
-                            if(replyBuilder.getRepliesCount() == batch_size){
-                                StreamObserver<OpReply> ycsbOb = entry.getKey();
-                                OpReply reply = replyBuilder.build();
-                                // System.out.println("Client " + Thread.currentThread().getId() + " Sent " + replyBuilder.getRepliesCount());
-                                replyBuilder.clear();
-                                synchronized(ycsbOb) {
-                                    ycsbOb.onNext(reply);
+                        for(SingleOpReply reply : op.getRepliesList()){
+                            StreamObserver<OpReply> ycsbOb = ycsb_obs.get(reply.getId());
+                            OpReply.Builder replyBuilder = replyBuilders.get(reply.getId());
+                            replyBuilder.addReplies(reply);
+                            // if(replyBuilder.getRepliesCount() == batch_size){ //TODO: move this down
+                            //     OpReply batch_reply = replyBuilder.build();
+                            //     replyBuilder.clear();
+                            //     synchronized(ycsbOb) {
+                            //         ycsbOb.onNext(batch_reply);
+                            //     }
+                            // }
+                        }
+                        // if(opcount % batch_size != 0) {
+                            System.out.println("opcount with tail: " + opcount);
+                            // for(Map.Entry<StreamObserver<OpReply>, OpReply.Builder> entry : replyBuilders.entrySet()){
+                            for(Map.Entry<Long, OpReply.Builder> entry : replyBuilders.entrySet()){
+                                OpReply.Builder replyBuilder = entry.getValue();
+                                // if(replyBuilder.getRepliesCount() > 0) {
+                                if(opcount % batch_size != 0 || replyBuilder.getRepliesCount() == batch_size) {
+                                    StreamObserver<OpReply> ycsbOb = ycsb_obs.get(entry.getKey());
+                                    OpReply reply = replyBuilder.build();
+                                    replyBuilder.clear();
+                                    synchronized(ycsbOb) {
+                                        ycsbOb.onNext(reply);
+                                    }
                                 }
                             }
-                        }
+                        // }
                     } catch (Exception e) {
-                        System.out.println("at opcount: " + opcount + " error connecting to ycsb tmp ob " + opReply.getReplies(0).getId());
-                        System.out.println("first key: " + opReply.getReplies(0).getKey());
+                        e.printStackTrace();
+                        System.out.println("at opcount: " + opcount + " error connecting to ycsb tmp ob " + op.getReplies(0).getId());
+                        System.out.println("first key: " + op.getReplies(0).getKey());
                     }
+                    // System.out.println("opcount: " + (++opcount));
                 }
 
                 @Override
@@ -331,6 +386,7 @@ public class Replicator {
                         }
                     });
                 newMap.put(i, tmp);
+                // System.out.println("added " + i + " to tail");
             }
             return newMap;
         }
@@ -340,6 +396,8 @@ public class Replicator {
             ConcurrentHashMap<Integer, StreamObserver<Op>> newMap = new ConcurrentHashMap<>();
             StreamObserver<Op> tmp;
             for(int i = 0; i < this.num_shards; i++) {
+                // id --> determines which channel you will get
+                // i --> add one client per shard to returned client map
                 tmp = RubbleKvStoreServiceGrpc.newStub(this.headChan.get(id.intValue()%this.num_channels + i*this.num_channels)).doOp(
                     new StreamObserver<OpReply>(){
                         @Override
@@ -358,6 +416,7 @@ public class Replicator {
                         }
                     });
                 newMap.put(i, tmp);
+                // System.out.println("added " + i + " to head");
             }
             return newMap;
         }       

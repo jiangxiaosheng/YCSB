@@ -354,10 +354,8 @@ public final class Client {
     try (final TraceScope span = tracer.newScope(CLIENT_WORKLOAD_SPAN)) {
 
       final Map<MyThread, ClientThread> threads = new HashMap<>(threadcount);
-      String targetAddr = replicator_addr; //TODO(rubble): clean variable names
+      String targetAddr = replicator_addr;
       int batch_size = replicator_batch_size;
-      // String targetAddr = "128.110.153.244:50051";
-      // String targetAddr = "128.110.154.79:50050";
       System.out.println("communicating with replicator at " + targetAddr);
       int numChan = 8;
       List<ManagedChannel> chans = new ArrayList<>();
