@@ -1,0 +1,127 @@
+/usr/bin/java  -classpath /mnt/sdb/YCSB/conf:/mnt/sdb/YCSB/core/target/core-0.18.0-SNAPSHOT.jar:/mnt/sdb/YCSB/rocksdb/target/rocksdb-binding-0.18.0-SNAPSHOT.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/HdrHistogram-2.1.4.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/animal-sniffer-annotations-1.19.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/annotations-4.1.1.4.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/checker-compat-qual-2.5.5.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/error_prone_annotations-2.4.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/failureaccess-1.0.1.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-api-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-context-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-core-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-netty-shaded-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-protobuf-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-protobuf-lite-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-stub-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/gson-2.8.6.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/guava-30.0-android.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/htrace-core4-4.1.0-incubating.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/j2objc-annotations-1.3.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/javax.annotation-api-1.3.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/jcip-annotations-1.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/jsr305-3.0.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/perfmark-api-0.23.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/proto-google-common-protos-2.0.1.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/protobuf-java-3.12.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/rocksdbjni-6.2.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/slf4j-api-1.7.25.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/slf4j-simple-1.7.25.jar site.ycsb.Client -load -db site.ycsb.db.rocksdb.RocksDBClient -s -P workloads/workloada -p rocksdb.dir=/users/cc4351/test -threads 16 -replicator_addr 128.110.153.185:50050 -replicator_batch_size 10
+Set replicator_addr to 128.110.153.185:50050
+Set replicator batch size to 10
+communicating with replicator at 128.110.153.185:50050
+recvCount: 187500 met target
+returned from latch for thread 68
+recvCount: 187500 met target
+returned from latch for thread 69
+recvCount: 187500 met target
+returned from latch for thread 58
+recvCount: 187500 met target
+returned from latch for thread 57
+recvCount: 187500 met target
+returned from latch for thread 49
+recvCount: 187500 met target
+returned from latch for thread 70
+recvCount: 187500 met target
+returned from latch for thread 26
+recvCount: 187500 met target
+returned from latch for thread 65
+recvCount: 187500 met target
+returned from latch for thread 56
+recvCount: 187500 met target
+returned from latch for thread 37
+recvCount: 187500 met target
+returned from latch for thread 23
+recvCount: 187500 met target
+returned from latch for thread 53
+recvCount: 187500 met target
+returned from latch for thread 41
+recvCount: 187500 met target
+returned from latch for thread 29
+recvCount: 187500 met target
+returned from latch for thread 46
+recvCount: 187500 met target
+returned from latch for thread 32
+[OVERALL], RunTime(ms), 70509
+[OVERALL], Throughput(ops/sec), 42547.759860443344
+[TOTAL_GCS_G1_Young_Generation], Count, 25
+[TOTAL_GC_TIME_G1_Young_Generation], Time(ms), 644
+[TOTAL_GC_TIME_%_G1_Young_Generation], Time(%), 0.9133585783375172
+[TOTAL_GCS_G1_Old_Generation], Count, 0
+[TOTAL_GC_TIME_G1_Old_Generation], Time(ms), 0
+[TOTAL_GC_TIME_%_G1_Old_Generation], Time(%), 0.0
+[TOTAL_GCs], Count, 25
+[TOTAL_GC_TIME], Time(ms), 644
+[TOTAL_GC_TIME_%], Time(%), 0.9133585783375172
+[CLEANUP], Operations, 16
+[CLEANUP], AverageLatency(us), 251.125
+[CLEANUP], MinLatency(us), 5
+[CLEANUP], MaxLatency(us), 3905
+[CLEANUP], 95thPercentileLatency(us), 18
+[CLEANUP], 99thPercentileLatency(us), 3905
+[INSERT], Operations, 3000000
+[INSERT], AverageLatency(us), 294.851685
+[INSERT], MinLatency(us), 2
+[INSERT], MaxLatency(us), 62357503
+[INSERT], 95thPercentileLatency(us), 31
+[INSERT], 99thPercentileLatency(us), 74
+[INSERT], Return=OK, 3000000
+/usr/bin/java  -classpath /mnt/sdb/YCSB/conf:/mnt/sdb/YCSB/core/target/core-0.18.0-SNAPSHOT.jar:/mnt/sdb/YCSB/rocksdb/target/rocksdb-binding-0.18.0-SNAPSHOT.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/HdrHistogram-2.1.4.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/animal-sniffer-annotations-1.19.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/annotations-4.1.1.4.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/checker-compat-qual-2.5.5.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/error_prone_annotations-2.4.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/failureaccess-1.0.1.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-api-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-context-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-core-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-netty-shaded-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-protobuf-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-protobuf-lite-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/grpc-stub-1.36.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/gson-2.8.6.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/guava-30.0-android.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/htrace-core4-4.1.0-incubating.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/j2objc-annotations-1.3.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/javax.annotation-api-1.3.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/jcip-annotations-1.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/jsr305-3.0.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/perfmark-api-0.23.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/proto-google-common-protos-2.0.1.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/protobuf-java-3.12.0.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/rocksdbjni-6.2.2.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/slf4j-api-1.7.25.jar:/mnt/sdb/YCSB/rocksdb/target/dependency/slf4j-simple-1.7.25.jar site.ycsb.Client -t -db site.ycsb.db.rocksdb.RocksDBClient -s -P workloads/workloada -p rocksdb.dir=/users/cc4351/test -threads 16 -replicator_addr 128.110.153.185:50050 -replicator_batch_size 10
+Set replicator_addr to 128.110.153.185:50050
+Set replicator batch size to 10
+communicating with replicator at 128.110.153.185:50050
+recvCount: 62500 met target
+returned from latch for thread 26
+recvCount: 62500 met target
+returned from latch for thread 30
+recvCount: 62500 met target
+returned from latch for thread 67
+recvCount: 62500 met target
+returned from latch for thread 53
+recvCount: 62500 met target
+returned from latch for thread 69
+recvCount: 62500 met target
+returned from latch for thread 41
+recvCount: 62500 met target
+returned from latch for thread 23
+recvCount: 62500 met target
+returned from latch for thread 70
+recvCount: 62500 met target
+returned from latch for thread 33
+recvCount: 62500 met target
+returned from latch for thread 49
+recvCount: 62500 met target
+returned from latch for thread 66
+recvCount: 62500 met target
+returned from latch for thread 37
+recvCount: 62500 met target
+returned from latch for thread 68
+recvCount: 62500 met target
+returned from latch for thread 57
+recvCount: 62500 met target
+returned from latch for thread 56
+recvCount: 62500 met target
+returned from latch for thread 46
+[OVERALL], RunTime(ms), 31938
+[OVERALL], Throughput(ops/sec), 31310.66441229883
+[TOTAL_GCS_G1_Young_Generation], Count, 15
+[TOTAL_GC_TIME_G1_Young_Generation], Time(ms), 381
+[TOTAL_GC_TIME_%_G1_Young_Generation], Time(%), 1.1929363141085854
+[TOTAL_GCS_G1_Old_Generation], Count, 0
+[TOTAL_GC_TIME_G1_Old_Generation], Time(ms), 0
+[TOTAL_GC_TIME_%_G1_Old_Generation], Time(%), 0.0
+[TOTAL_GCs], Count, 15
+[TOTAL_GC_TIME], Time(ms), 381
+[TOTAL_GC_TIME_%], Time(%), 1.1929363141085854
+[READ], Operations, 499931
+[READ], AverageLatency(us), 460.95714608615987
+[READ], MinLatency(us), 0
+[READ], MaxLatency(us), 30326783
+[READ], 95thPercentileLatency(us), 1
+[READ], 99thPercentileLatency(us), 8
+[READ], Return=OK, 499931
+[CLEANUP], Operations, 16
+[CLEANUP], AverageLatency(us), 245.875
+[CLEANUP], MinLatency(us), 4
+[CLEANUP], MaxLatency(us), 3819
+[CLEANUP], 95thPercentileLatency(us), 28
+[CLEANUP], 99thPercentileLatency(us), 3819
+[UPDATE], Operations, 500069
+[UPDATE], AverageLatency(us), 466.83898621990164
+[UPDATE], MinLatency(us), 0
+[UPDATE], MaxLatency(us), 29655039
+[UPDATE], 95thPercentileLatency(us), 7
+[UPDATE], 99thPercentileLatency(us), 41
+[UPDATE], Return=OK, 500069
