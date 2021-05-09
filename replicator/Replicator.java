@@ -111,8 +111,8 @@ public class Replicator {
         private final List<ManagedChannel> tailChan;
         private final List<ManagedChannel> headChan;
         private int num_shards, num_channels, batch_size;
-        private static int ycsb_batch_size;
-        private static long count_per_client = Long.MAX_VALUE;
+        // private static int ycsb_batch_size;
+        // private static long count_per_client = Long.MAX_VALUE;
         private static final Logger LOGGER = Logger.getLogger(ReplicatorService.class.getName());
     
         public ReplicatorService(String[][] shards, int batch_size, int chan_num) {   
@@ -195,10 +195,10 @@ public class Replicator {
                     if(!hasInit) {
                         this.init(idx);
                         // default that the first batch is of equal size and to max capacity
-                        synchronized(ReplicatorService.class) {
-                            int ops_count = op.getOpsCount();
-                            ycsb_batch_size = (ycsb_batch_size > ops_count)? ycsb_batch_size:ops_count;
-                        }
+                        // synchronized(ReplicatorService.class) {
+                        //     int ops_count = op.getOpsCount();
+                        //     // ycsb_batch_size = (ycsb_batch_size > ops_count)? ycsb_batch_size:ops_count;
+                        // }
                     }
 
                     // TODO: is there a better way to do sharding than converting to BigInteger
@@ -287,7 +287,7 @@ public class Replicator {
 
         @Override
         public StreamObserver<OpReply> sendReply(final StreamObserver<Reply> ob) {
-            final int reply_batch = ycsb_batch_size;
+            // final int reply_batch = ycsb_batch_size;
             ConcurrentHashMap<StreamObserver<OpReply>, OpReply.Builder> replyBuilders = new ConcurrentHashMap<>();
             for(StreamObserver<OpReply> observer : ycsb_obs.values()){
                 replyBuilders.put(observer, OpReply.newBuilder());
@@ -311,7 +311,8 @@ public class Replicator {
                             StreamObserver<OpReply> ycsbOb = ycsb_obs.get(reply.getId());
                             OpReply.Builder replyBuilder = replyBuilders.get(ycsbOb);
                             replyBuilder.addReplies(reply);
-                            if(replyBuilder.getRepliesCount() == reply_batch){
+                            // if(replyBuilder.getRepliesCount() == reply_batch){
+                            if(replyBuilder.getRepliesCount() == batch_size){
                                 OpReply batch_reply = replyBuilder.build();
                                 // System.out.println("Client " + Thread.currentThread().getId() + " Sent " + replyBuilder.getRepliesCount());
                                 replyBuilder.clear();
@@ -320,7 +321,7 @@ public class Replicator {
                                 }
                             }
                         }
-                        if(opcount % reply_batch != 0) {
+                        if(opcount % batch_size != 0) {
                             for(Map.Entry<StreamObserver<OpReply>, OpReply.Builder> entry : replyBuilders.entrySet()){
                                 OpReply.Builder replyBuilder = entry.getValue();
                                 if(replyBuilder.getRepliesCount() > 0) {
