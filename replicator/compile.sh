@@ -3,6 +3,7 @@
 set -ex
 
 cp Replicator.java ./target/rubblejava/
+mkdir -p ./target/config/
 cp test.yml ./target/config/
 
 cd target/
