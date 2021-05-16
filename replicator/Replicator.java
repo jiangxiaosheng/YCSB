@@ -84,6 +84,7 @@ public class Replicator {
         int num_replica = (int)rubble_params.get("replica_num");
         int batch_size = (int)rubble_params.getOrDefault("batch_size", 1);
         int chan_num = (int) rubble_params.getOrDefault("chan_num", 1);
+	int self_port = (int) rubble_params.getOrDefault("replicator_port", 50050);
         System.out.println("Shard number: "+num_shards);
         System.out.println("Replica number(chain length): "+num_replica);
         System.out.println("Batch size: "+batch_size);
@@ -101,7 +102,7 @@ public class Replicator {
             shards[shard_ind] = new String[]{head_port, tail_port};
             shard_ind++;
         }
-        Replicator replicator = new Replicator(50050, shards, batch_size, chan_num);
+        Replicator replicator = new Replicator(self_port, shards, batch_size, chan_num);
         replicator.start();
         replicator.blockUntilShutdown();
     }
