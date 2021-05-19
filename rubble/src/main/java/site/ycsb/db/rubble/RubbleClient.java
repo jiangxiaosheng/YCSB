@@ -90,6 +90,8 @@ public class RubbleClient extends DB {
         this.batchSize = Integer.parseInt(props.getProperty("batchsize", "1"));
 
         this.currentOpCount = 0;
+        props.put("opsdone", 0);
+
         recordCount = Integer.parseInt(props.getProperty("recordcount"));
         if(totalOpCount == null){
           totalOpCount = new AtomicLong();
@@ -111,6 +113,7 @@ public class RubbleClient extends DB {
           @Override
           public void onNext(OpReply reply) {
             recvCount += reply.getRepliesCount();
+            props.put("opsdone", (int) recvCount);
             // System.out.println("Client " + Thread.currentThread().getId() + " Received " + recvCount + " replies");
             if(recvCount == target) {
               System.out.println("recvCount: " + recvCount + " met target");
@@ -243,7 +246,7 @@ public class RubbleClient extends DB {
 
   private void onNext(String k, String v, long id, int opType) {
 
-    id = this.totalOpCount.addAndGet(1);
+    id = totalOpCount.addAndGet(1);
     SingleOp op = SingleOp.newBuilder().setKey(k).setValue(v).
                           setId(id).setType(SingleOp.OpType.forNumber(opType)).
                           build();

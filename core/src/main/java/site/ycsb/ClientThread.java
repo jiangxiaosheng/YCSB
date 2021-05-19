@@ -86,7 +86,12 @@ public class ClientThread implements Runnable {
   }
 
   public int getOpsDone() {
-    return opsdone;
+    if(props.getProperty("db").equals("site.ycsb.db.rubble.RubbleClient")){
+      opsdone = (int)this.db.getProperties().get("opsdone");
+      return opsdone;
+    }else{
+      return opsdone;
+    }
   }
 
   @Override
@@ -127,7 +132,11 @@ public class ClientThread implements Runnable {
             break;
           }
 
-          opsdone++;
+          if(props.getProperty("db").equals("site.ycsb.db.rubble.RubbleClient")){
+            opsdone = (int) db.getProperties().get("opsdone");
+          }else{
+            opsdone++;
+          }
 
           throttleNanos(startTimeNanos);
         }
@@ -140,7 +149,11 @@ public class ClientThread implements Runnable {
             break;
           }
 
-          opsdone++;
+          if(props.getProperty("db").equals("site.ycsb.db.rubble.RubbleClient")){
+            opsdone = (int) db.getProperties().get("opsdone");
+          }else{
+            opsdone++;
+          }
 
           throttleNanos(startTimeNanos);
         }
