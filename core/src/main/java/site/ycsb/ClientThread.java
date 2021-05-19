@@ -32,6 +32,7 @@ public class ClientThread implements Runnable {
 
   private static boolean spinSleep;
   private DB db;
+  private boolean isRubble;
   private boolean dotransactions;
   private Workload workload;
   private int opcount;
@@ -59,6 +60,9 @@ public class ClientThread implements Runnable {
   public ClientThread(DB db, boolean dotransactions, Workload workload, Properties props, int opcount,
                       double targetperthreadperms, CountDownLatch completeLatch) {
     this.db = db;
+    if(props.getProperty("db").equals("site.ycsb.db.rubble.RubbleClient")){
+      this.isRubble = true;
+    }
     this.dotransactions = dotransactions;
     this.workload = workload;
     this.opcount = opcount;
@@ -86,7 +90,7 @@ public class ClientThread implements Runnable {
   }
 
   public int getOpsDone() {
-    if(props.getProperty("db").equals("site.ycsb.db.rubble.RubbleClient")){
+    if(isRubble){
       opsdone = (int)this.db.getProperties().get("opsdone");
       return opsdone;
     }else{
@@ -132,7 +136,7 @@ public class ClientThread implements Runnable {
             break;
           }
 
-          if(props.getProperty("db").equals("site.ycsb.db.rubble.RubbleClient")){
+          if(isRubble){
             opsdone = (int) db.getProperties().get("opsdone");
           }else{
             opsdone++;
@@ -149,7 +153,7 @@ public class ClientThread implements Runnable {
             break;
           }
 
-          if(props.getProperty("db").equals("site.ycsb.db.rubble.RubbleClient")){
+          if(isRubble){
             opsdone = (int) db.getProperties().get("opsdone");
           }else{
             opsdone++;
