@@ -79,24 +79,26 @@ public class Replicator {
         Map<String, Object> obj = yaml.load(inputStream);
         System.out.println("Finished");
         LinkedHashMap<String, Object> rubble_params = (LinkedHashMap<String, Object>)obj.get("rubble_params");
-        LinkedHashMap<String, List<String>> shard_ports = (LinkedHashMap<String, List<String>>)rubble_params.get("shard_ports");
+        ArrayList<LinkedHashMap<String, Object>> shard_ports = (ArrayList<LinkedHashMap<String, Object>>)rubble_params.get("shard_info");
         int num_shards = (int)rubble_params.get("shard_num");
         int num_replica = (int)rubble_params.get("replica_num");
         int batch_size = (int)rubble_params.getOrDefault("batch_size", 1);
         int chan_num = (int) rubble_params.getOrDefault("chan_num", 1);
-	int self_port = (int) rubble_params.getOrDefault("replicator_port", 50050);
+	    int self_port = (int) rubble_params.getOrDefault("replicator_port", 50050);
         System.out.println("Shard number: "+num_shards);
         System.out.println("Replica number(chain length): "+num_replica);
         System.out.println("Batch size: "+batch_size);
         System.out.println("Number of channels: " + chan_num);
-
+        
         String[][] shards = new String[num_shards][2];
         int shard_ind = 0;
-        for (String shard_tag: shard_ports.keySet()) {
-            System.out.println("Shard: "+shard_tag);
-            List<String> ports = shard_ports.get(shard_tag);
-            String head_port = ports.get(0);
-            String tail_port = ports.get(ports.size()-1);
+
+        for (LinkedHashMap<String, Object> shard_tag: shard_ports) {
+            ArrayList<Object> ports = (ArrayList<Object>) shard_tag.get("sequence");
+            LinkedHashMap<String, String> head_pair = (LinkedHashMap<String, String>) ports.get(0);
+            LinkedHashMap<String, String> tail_pair = (LinkedHashMap<String, String>) ports.get(ports.size()-1);
+            String head_port = head_pair.get("ip") + ":" + String.valueOf(head_pair.get("port"));
+            String tail_port = tail_pair.get("ip") + ":" + String.valueOf(tail_pair.get("port"));
             System.out.println("Head: "+head_port);
             System.out.println("Tail: "+tail_port);
             shards[shard_ind] = new String[]{head_port, tail_port};
