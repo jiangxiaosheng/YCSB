@@ -56,5 +56,5 @@ rubble_params:
         - ip: 128.110.153.93
           port: 50052
   batch_size: 500
-  ycsb_workload: _test
+  ycsb_workload: a
 
