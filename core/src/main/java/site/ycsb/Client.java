@@ -332,7 +332,22 @@ public final class Client {
 
     final List<ClientThread> clients = initDb(dbname, props, threadcount, targetperthreadperms,
         workload, tracer, completeLatch);
-
+    // RUBBLE
+    final Map<MyThread, ClientThread> threads = new HashMap<>(threadcount);
+    String targetAddr = replicator_addr;
+    int batch_size = replicator_batch_size;
+    System.out.println("communicating with replicator at " + targetAddr);
+    int numChan = 8;
+    List<ManagedChannel> chans = new ArrayList<>();
+    for(int i = 0; i<numChan; i++) {
+      chans.add(ManagedChannelBuilder.forTarget(targetAddr).usePlaintext().build());
+    }
+    int idx = 0;
+    for(ClientThread client: clients) {
+      threads.put(new MyThread(tracer.wrap(client, "ClientThread"), chans.get(idx%numChan), client.getOpsTodo(), batch_size), client);
+      idx++;
+    }
+    // RUBBLE
     if (status) {
       boolean standardstatus = false;
       if (props.getProperty(Measurements.MEASUREMENT_TYPE_PROPERTY, "").compareTo("timeseries") == 0) {
@@ -341,7 +356,7 @@ public final class Client {
       int statusIntervalSeconds = Integer.parseInt(props.getProperty("status.interval", "10"));
       boolean trackJVMStats = props.getProperty(Measurements.MEASUREMENT_TRACK_JVM_PROPERTY,
           Measurements.MEASUREMENT_TRACK_JVM_PROPERTY_DEFAULT).equals("true");
-      statusthread = new StatusThread(completeLatch, clients, label, standardstatus, statusIntervalSeconds,
+      statusthread = new StatusThread(completeLatch, threads, label, standardstatus, statusIntervalSeconds,
           trackJVMStats);
       statusthread.start();
     }
@@ -353,21 +368,21 @@ public final class Client {
 
     try (final TraceScope span = tracer.newScope(CLIENT_WORKLOAD_SPAN)) {
 
-      final Map<MyThread, ClientThread> threads = new HashMap<>(threadcount);
-      String targetAddr = replicator_addr;
-      int batch_size = replicator_batch_size;
-      System.out.println("communicating with replicator at " + targetAddr);
-      int numChan = 8;
-      List<ManagedChannel> chans = new ArrayList<>();
-      for(int i = 0; i<numChan; i++) {
-        chans.add(ManagedChannelBuilder.forTarget(targetAddr).usePlaintext().build());
-      }
-      int idx = 0;
-      // int batch_size = 10;
-      for(ClientThread client: clients) {
-        threads.put(new MyThread(tracer.wrap(client, "ClientThread"), chans.get(idx%numChan), client.getOpsTodo(), batch_size), client);
-        idx++;
-      }
+      // final Map<MyThread, ClientThread> threads = new HashMap<>(threadcount);
+      // String targetAddr = replicator_addr;
+      // int batch_size = replicator_batch_size;
+      // System.out.println("communicating with replicator at " + targetAddr);
+      // int numChan = 8;
+      // List<ManagedChannel> chans = new ArrayList<>();
+      // for(int i = 0; i<numChan; i++) {
+      //   chans.add(ManagedChannelBuilder.forTarget(targetAddr).usePlaintext().build());
+      // }
+      // int idx = 0;
+      // // int batch_size = 10;
+      // for(ClientThread client: clients) {
+      //   threads.put(new MyThread(tracer.wrap(client, "ClientThread"), chans.get(idx%numChan), client.getOpsTodo(), batch_size), client);
+      //   idx++;
+      // }
       st = System.currentTimeMillis();
       
       // insert gRPC listening service here

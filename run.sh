@@ -3,9 +3,9 @@
 set -ex
 
 THREAD_NUM=16
-REPLICATOR_ADDR="128.110.153.185:50050"
+REPLICATOR_ADDR="128.110.153.86:50050"
 REPLICATOR_BATCH_SIZE=10
-WORKLOAD=1
+WORKLOAD=_test
 
 for i in "$@"
 do
@@ -39,6 +39,7 @@ done
 ./bin/ycsb.sh run rocksdb -s \
   -P workloads/workload${WORKLOAD} \
   -p rocksdb.dir=/users/$USER/test \
+  -p status.interval=1 \
   -threads ${THREAD_NUM} \
   -replicator_addr ${REPLICATOR_ADDR} \
   -replicator_batch_size ${REPLICATOR_BATCH_SIZE}

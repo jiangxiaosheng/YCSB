@@ -44,6 +44,7 @@ public class ClientThread implements Runnable {
   private Properties props;
   private long targetOpsTickNs;
   private final Measurements measurements;
+  
 
   /**
    * Constructor.

@@ -14,6 +14,7 @@ import io.grpc.StatusRuntimeException;
 public class MyThread extends Thread {
   private Runnable r;
   private long sendCount;
+  private long recvCount;
   private long target;
   private StreamObserver<Op> observer;
   private final CountDownLatch latch;
@@ -25,6 +26,7 @@ public class MyThread extends Thread {
     this.r = r;
     this.target = target;
     this.sendCount = 0;
+    this.recvCount = 0;
     this.asyncStub = RubbleKvStoreServiceGrpc.newStub(channel);
     this.batch_size = batch;
     this.latch = this.createObserver();
@@ -39,7 +41,7 @@ public class MyThread extends Thread {
     final CountDownLatch finishLatch = new CountDownLatch(1);
     final long t = this.target;
     this.observer = asyncStub.doOp( new StreamObserver<OpReply>(){
-      long recvCount = 0;
+      // long recvCount = 0;
       long tar = t;
       @Override
       public void onNext(OpReply reply) {
@@ -47,6 +49,7 @@ public class MyThread extends Thread {
         // System.out.println("reply: " + reply.getReplies(0).getKey() /*+ "status: " + reply.getStatus()*/);
         // System.out.println("recvCount: " + recvCount + " tar: " + tar);
         recvCount += r.getRepliesCount();
+        // System.out.println("recvCount: " + recvCount + " received");
         if(recvCount == tar) {
           System.out.println("recvCount: " + recvCount + " met target");
           finishLatch.countDown();
@@ -96,6 +99,15 @@ public class MyThread extends Thread {
     } catch(InterruptedException e) {
       e.printStackTrace();
     }
+  }
+
+  public long getRecvCount() {
+    return this.recvCount;
+  }
+  
+  public long getOpsTodo() {
+    long todo = this.target - this.recvCount;
+    return todo < 0 ? 0 : todo;
   }
 
 }

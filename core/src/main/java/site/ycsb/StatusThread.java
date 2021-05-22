@@ -22,6 +22,11 @@ import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+// RUBBLE
+import java.util.Map;
+import java.util.Set;
+import java.util.Collection;
+// RUBBLE
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -39,7 +44,9 @@ public class StatusThread extends Thread {
   private final boolean trackJVMStats;
 
   // The clients that are running.
-  private final List<ClientThread> clients;
+  private final Collection<ClientThread> clients;
+  // MyThread for real time throughput tracking
+  private final Set<MyThread> executors;
 
   private final String label;
   private final boolean standardstatus;
@@ -57,6 +64,7 @@ public class StatusThread extends Thread {
   private long lastGCCount = 0;
   private long lastGCTime = 0;
 
+
   /**
    * Creates a new StatusThread without JVM stat tracking.
    *
@@ -67,9 +75,14 @@ public class StatusThread extends Thread {
    * @param standardstatus        If true the status is printed to stdout in addition to stderr.
    * @param statusIntervalSeconds The number of seconds between status updates.
    */
-  public StatusThread(CountDownLatch completeLatch, List<ClientThread> clients,
+  // public StatusThread(CountDownLatch completeLatch, List<ClientThread> clients,
+  //                     String label, boolean standardstatus, int statusIntervalSeconds) {
+  //   this(completeLatch, clients, label, standardstatus, statusIntervalSeconds, false);
+  // }
+
+  public StatusThread(CountDownLatch completeLatch,  Map<MyThread, ClientThread> threads,
                       String label, boolean standardstatus, int statusIntervalSeconds) {
-    this(completeLatch, clients, label, standardstatus, statusIntervalSeconds, false);
+    this(completeLatch, threads, label, standardstatus, statusIntervalSeconds, false);
   }
 
   /**
@@ -83,18 +96,30 @@ public class StatusThread extends Thread {
    * @param statusIntervalSeconds The number of seconds between status updates.
    * @param trackJVMStats         Whether or not to track JVM stats.
    */
-  public StatusThread(CountDownLatch completeLatch, List<ClientThread> clients,
+  // public StatusThread(CountDownLatch completeLatch, List<ClientThread> clients,
+  //                     String label, boolean standardstatus, int statusIntervalSeconds,
+  //                     boolean trackJVMStats) {
+  //   this.completeLatch = completeLatch;
+  //   this.clients = clients;
+  //   this.label = label;
+  //   this.standardstatus = standardstatus;
+  //   sleeptimeNs = TimeUnit.SECONDS.toNanos(statusIntervalSeconds);
+  //   measurements = Measurements.getMeasurements();
+  //   this.trackJVMStats = trackJVMStats;
+  // }
+
+  public StatusThread(CountDownLatch completeLatch, Map<MyThread, ClientThread> threads,
                       String label, boolean standardstatus, int statusIntervalSeconds,
                       boolean trackJVMStats) {
     this.completeLatch = completeLatch;
-    this.clients = clients;
+    this.executors = threads.keySet();
+    this.clients = threads.values();
     this.label = label;
     this.standardstatus = standardstatus;
     sleeptimeNs = TimeUnit.SECONDS.toNanos(statusIntervalSeconds);
     measurements = Measurements.getMeasurements();
     this.trackJVMStats = trackJVMStats;
   }
-
   /**
    * Run and periodically report status.
    */
@@ -148,13 +173,16 @@ public class StatusThread extends Thread {
     long todoops = 0;
 
     // Calculate the total number of operations completed.
-    for (ClientThread t : clients) {
-      totalops += t.getOpsDone();
+    // for (ClientThread t : clients) {
+    //   totalops += t.getOpsDone();
+    //   todoops += t.getOpsTodo();
+    // }
+    for (MyThread t: executors) {
+      totalops += t.getRecvCount();
       todoops += t.getOpsTodo();
     }
-
-
-    long interval = endIntervalMs - startTimeMs;
+    
+    long interval = endIntervalMs - startTimeMs; // time since exp starts
     double throughput = 1000.0 * (((double) totalops) / (double) interval);
     double curthroughput = 1000.0 * (((double) (totalops - lastTotalOps)) /
         ((double) (endIntervalMs - startIntervalMs)));
