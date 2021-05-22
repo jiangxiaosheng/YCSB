@@ -83,11 +83,12 @@ public class Replicator {
     Map<String, Object> obj = yaml.load(inputStream);
     System.out.println("Finished");
     LinkedHashMap<String, Object> Params = (LinkedHashMap<String, Object>)obj.get("rubble_params");
-    LinkedHashMap<String, List<String>> shardPorts = (LinkedHashMap<String, List<String>>)Params.get("shard_ports");
+    ArrayList<LinkedHashMap<String, Object>> shardPorts = (ArrayList<LinkedHashMap<String, Object>>)Params.get("shard_info");
     int shardNum = (int)Params.get("shard_num");
     int replicaNum = (int)Params.get("replica_num");
     int batchSize = (int)Params.getOrDefault("batch_size", 1);
     int chanNum = (int) Params.getOrDefault("num_chan", 1);
+    int replicatorPort = (int) Params.getOrDefault("replicator_port", 50050);
     System.out.println("Shard number: "+shardNum);
     System.out.println("Replica number(chain length): "+replicaNum);
     System.out.println("Batch size: "+batchSize);
@@ -95,17 +96,20 @@ public class Replicator {
 
     String[][] shards = new String[shardNum][2];
     int idx = 0;
-    for (String shardTag: shardPorts.keySet()) {
-      System.out.println("Shard: "+shardTag);
-      List<String> ports = shardPorts.get(shardTag);
-      String headPort = ports.get(0);
-      String tailPort = ports.get(ports.size()-1);
-      System.out.println("Head: " + headPort);
-      System.out.println("Tail: " + tailPort);
-      shards[idx] = new String[]{headPort, tailPort};
+
+    for (LinkedHashMap<String, Object> shard_tag: shardPorts) {
+      ArrayList<Object> ports = (ArrayList<Object>) shard_tag.get("sequence");
+      LinkedHashMap<String, String> head_pair = (LinkedHashMap<String, String>) ports.get(0);
+      LinkedHashMap<String, String> tail_pair = (LinkedHashMap<String, String>) ports.get(ports.size()-1);
+      String head_port = head_pair.get("ip") + ":" + String.valueOf(head_pair.get("port"));
+      String tail_port = tail_pair.get("ip") + ":" + String.valueOf(tail_pair.get("port"));
+      System.out.println("Head: "+head_port);
+      System.out.println("Tail: "+tail_port);
+      shards[idx] = new String[]{head_port, tail_port};
       idx++;
     }
-    Replicator replicator = new Replicator(50050, shards, batchSize, chanNum);
+
+    Replicator replicator = new Replicator(replicatorPort, shards, batchSize, chanNum);
     replicator.start();
     replicator.blockUntilShutdown();
   }
