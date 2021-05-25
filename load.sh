@@ -41,5 +41,6 @@ done
   -p rocksdb.dir=/users/$USER/test \
   -p status.interval=1 \
   -threads ${THREAD_NUM} \
+  -target 800000 \
   -replicator_addr ${REPLICATOR_ADDR} \
   -replicator_batch_size ${REPLICATOR_BATCH_SIZE}
