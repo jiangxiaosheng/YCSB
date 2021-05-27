@@ -35,7 +35,7 @@ public class Replicator {
     public Replicator(int ycsb_p, String[][] shards, int batch_size, int chan_num) {
       this.ycsb_port = ycsb_p;
       this.ycsb_server = ServerBuilder.forPort(ycsb_p)
-                    .executor(Executors.newFixedThreadPool(64))
+                    .executor(Executors.newFixedThreadPool(16))
                     .addService(new ReplicatorService(shards, batch_size, chan_num))
                     .build();
     }
@@ -320,6 +320,8 @@ public class Replicator {
                 }
               }
               if(op.getRepliesCount() % batch_size != 0) {
+                // TODO: monitor the finish time for op issued from every thread
+                // System.out.println("one stream is done for thread " + )
                 for(Map.Entry<StreamObserver<OpReply>, OpReply.Builder> entry : replyBuilders.entrySet()){
                   OpReply.Builder replyBuilder = entry.getValue();
                   if(replyBuilder.getRepliesCount() > 0) {
