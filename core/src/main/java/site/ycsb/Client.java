@@ -313,7 +313,7 @@ public final class Client {
     }
 
     // rubble: get the replicator address and batch size
-    String replicator_addr = props.getProperty(REPLICATOR_ADDR, "128.110.153.244:50051");
+    String replicator_addr = props.getProperty(REPLICATOR_ADDR, "0.0.0.0:50050");
     int replicator_batch_size = Integer.parseInt(props.getProperty(REPLICATOR_BATCH_SIZE, "10"));
 
     Thread warningthread = setupWarningThread();
