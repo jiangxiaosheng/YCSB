@@ -11,16 +11,16 @@ YCSB_HOME=../../
 TARGET='rubblejava/Replicator'
 DEPENDENCIES=$YCSB_HOME/core/target/classes/:$YCSB_HOME/rocksdb/target/dependency/*:$YCSB_HOME/replicator/lib/*:.:
 
-{
-    # kill pre-existing Replicator processes before starting a new one
-    kill $(ps aux | grep Replicator | awk '{print $2}')
-} || {
-    javac -classpath ${DEPENDENCIES} ${TARGET}.java
-    java -ea -classpath ${DEPENDENCIES} ${TARGET}
+# {
+#     # kill pre-existing Replicator processes before starting a new one
+#     kill $(ps aux | grep Replicator | awk '{print $2}')
+# } || {
+javac -classpath ${DEPENDENCIES} ${TARGET}.java
+java -ea -classpath ${DEPENDENCIES} ${TARGET}
 
-    REPLICATOR_PID=$!
-    echo ${REPLICATOR_PID}
+REPLICATOR_PID=$!
+echo ${REPLICATOR_PID}
 
-    mkdir -p /tmp/rubble_proc/
-    echo "REPLICATOR ${REPLICATOR_PID}" >> /tmp/rubble_proc/proc_table
-}
+mkdir -p /tmp/rubble_proc/
+echo "REPLICATOR ${REPLICATOR_PID}" >> /tmp/rubble_proc/proc_table
+# }
