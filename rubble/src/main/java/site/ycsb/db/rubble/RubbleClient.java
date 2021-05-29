@@ -261,8 +261,14 @@ public class RubbleClient extends DB {
     if (this.opBuilder.getOpsCount() == this.batchSize) {
       this.batchCount++;
       // System.out.println("sending " + this.batchCount + " th batch");
-      this.ob.onNext(this.opBuilder.build());
-      this.opBuilder.clear();
+      try {
+        this.ob.onNext(this.opBuilder.build());
+        this.opBuilder.clear();
+      } catch (Exception e) {
+        e.printStackTrace();
+        System.out.println("targetOpCount : " + this.targetOpCount + " currentOpCount : " + this.currentOpCount);
+        assert false;
+      }
     }
 
     this.currentOpCount++;
@@ -270,7 +276,8 @@ public class RubbleClient extends DB {
       if (this.opBuilder.getOpsCount() > 0) {
         this.ob.onNext(this.opBuilder.build());
       }
-      // System.out.println("Client " + Thread.currentThread().getId() + " sent out " + this.targetOpCount + " in total");
+      System.out.println("Client " + Thread.currentThread().getId() + " sent out " + this.targetOpCount + " in total");
+      
       this.ob.onCompleted();
       this.waitLatch();
     }

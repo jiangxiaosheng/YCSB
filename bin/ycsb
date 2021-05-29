@@ -307,7 +307,7 @@ def main():
     if args.classpath:
         classpath = os.pathsep.join([args.classpath, classpath])
 
-    ycsb_command = ([java] + args.jvm_args +
+    ycsb_command = ([java] + args.jvm_args + ['-ea'] + 
                     ["-cp", classpath,
                      main_classname, "-db", db_classname] + remaining)
     if command:
