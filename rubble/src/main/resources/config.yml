@@ -11,17 +11,17 @@ rubble_params:
   shard_info:
     - tag: shard-0  # Tag of the shard.
       sequence:
-        - ip: 128.110.153.152 # IP for the rubble client on each machine, following the sequence of chain(head->...->tail).
+        - ip: 0.0.0.0 # IP for the rubble client on each machine, following the sequence of chain(head->...->tail).
           port: 50051
-        - ip: 128.110.153.151
-          port: 50052
+        - ip: 128.110.154.9
+          port: 50051
     # - tag: shard-1
     #   sequence:
     #     - ip: 128.110.153.93
     #       port: 50051
     #     - ip: 128.110.153.93
     #       port: 50052
-  batch_size: 500
+  batch_size: 1000
   # ycsb_workload: a
 
 

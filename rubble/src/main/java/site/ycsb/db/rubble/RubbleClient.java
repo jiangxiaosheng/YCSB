@@ -72,6 +72,7 @@ public class RubbleClient extends DB {
   // target opcount to perform
   private long currentOpCount;
   private long targetOpCount;
+  private int opsDone;
 
   private static long recordCount;
   private static AtomicLong totalOpCount;
@@ -90,8 +91,8 @@ public class RubbleClient extends DB {
         this.batchSize = Integer.parseInt(props.getProperty("batchsize", "1"));
 
         this.currentOpCount = 0;
-        props.put("opsdone", 0);
-
+        this.opsDone = 0;
+  
         recordCount = Integer.parseInt(props.getProperty("recordcount"));
         if(totalOpCount == null){
           totalOpCount = new AtomicLong();
@@ -104,7 +105,7 @@ public class RubbleClient extends DB {
         this.chan = ManagedChannelBuilder.forTarget(targetAddr).usePlaintext().build();
         this.asyncStub = RubbleKvStoreServiceGrpc.newStub(this.chan);
         this.opBuilder = Op.newBuilder();
-
+        
         final CountDownLatch finishLatch = new CountDownLatch(1);
         this.latch = finishLatch;
         this.ob = asyncStub.doOp(new StreamObserver<OpReply>(){
@@ -112,8 +113,10 @@ public class RubbleClient extends DB {
           long target = threadOpCount;
           @Override
           public void onNext(OpReply reply) {
+
             recvCount += reply.getRepliesCount();
-            props.put("opsdone", (int) recvCount);
+            opsDone = (int)recvCount;
+          
             // System.out.println("Client " + Thread.currentThread().getId() + " Received " + recvCount + " replies");
             if(recvCount == target) {
               System.out.println("recvCount: " + recvCount + " met target");
@@ -138,6 +141,9 @@ public class RubbleClient extends DB {
     }
   }
 
+  public int getOpsDone(){
+    return this.opsDone;
+  }
  
   @Override
   public void cleanup() throws DBException {

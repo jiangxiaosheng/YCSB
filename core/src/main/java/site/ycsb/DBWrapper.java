@@ -67,6 +67,10 @@ public class DBWrapper extends DB {
     scopeStringUpdate = simple + "#update";
   }
 
+  public DB getDb(){
+    return this.db;
+  }
+
   /**
    * Set the properties for this DB.
    */

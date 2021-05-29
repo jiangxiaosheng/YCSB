@@ -18,6 +18,7 @@
 package site.ycsb;
 
 import site.ycsb.measurements.Measurements;
+import java.lang.reflect.Method;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
@@ -91,7 +92,19 @@ public class ClientThread implements Runnable {
 
   public int getOpsDone() {
     if(isRubble){
-      opsdone = (int)this.db.getProperties().get("opsdone");
+      DBWrapper wrapper = (DBWrapper)db;
+      final DB client = wrapper.getDb();
+      Method method;
+      int done = 0;
+      try {
+        Class<?> clazz = client.getClass();
+        method = clazz.getDeclaredMethod("getOpsDone");
+        done = (int) method.invoke(client);
+      } catch (Exception e) {
+        e.printStackTrace();
+        assert false;
+      }
+      this.opsdone = done;
       return opsdone;
     }else{
       return opsdone;
@@ -135,10 +148,7 @@ public class ClientThread implements Runnable {
           if (!workload.doTransaction(db, workloadstate)) {
             break;
           }
-
-          if(isRubble){
-            opsdone = (int) db.getProperties().get("opsdone");
-          }else{
+          if(!this.isRubble){
             opsdone++;
           }
 
@@ -153,9 +163,7 @@ public class ClientThread implements Runnable {
             break;
           }
 
-          if(isRubble){
-            opsdone = (int) db.getProperties().get("opsdone");
-          }else{
+          if(!this.isRubble){
             opsdone++;
           }
 
