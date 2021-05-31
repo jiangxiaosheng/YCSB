@@ -39,8 +39,8 @@ done
 ./bin/ycsb.sh load rocksdb -s \
   -P workloads/workload${WORKLOAD}\
   -p rocksdb.dir=/users/$USER/test \
-  -p status.interval=1 \
+  -p status.interval=100 \
   -threads ${THREAD_NUM} \
-  -target 800000 \
+  -target 400000 \
   -replicator_addr ${REPLICATOR_ADDR} \
   -replicator_batch_size ${REPLICATOR_BATCH_SIZE}

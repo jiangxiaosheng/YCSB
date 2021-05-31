@@ -73,7 +73,8 @@ public class StatusThread extends Thread {
    * @param clients               The clients to collect metrics from.
    * @param label                 The label for the status.
    * @param standardstatus        If true the status is printed to stdout in addition to stderr.
-   * @param statusIntervalSeconds The number of seconds between status updates.
+   * // @param statusIntervalSeconds The number of seconds between status updates.
+   * @param statusIntervalMs The number of milliseconds between status updates.
    */
   // public StatusThread(CountDownLatch completeLatch, List<ClientThread> clients,
   //                     String label, boolean standardstatus, int statusIntervalSeconds) {
@@ -81,8 +82,8 @@ public class StatusThread extends Thread {
   // }
 
   public StatusThread(CountDownLatch completeLatch,  Map<MyThread, ClientThread> threads,
-                      String label, boolean standardstatus, int statusIntervalSeconds) {
-    this(completeLatch, threads, label, standardstatus, statusIntervalSeconds, false);
+                      String label, boolean standardstatus, int statusIntervalMs) {
+    this(completeLatch, threads, label, standardstatus, statusIntervalMs, false);
   }
 
   /**
@@ -93,7 +94,8 @@ public class StatusThread extends Thread {
    * @param clients               The clients to collect metrics from.
    * @param label                 The label for the status.
    * @param standardstatus        If true the status is printed to stdout in addition to stderr.
-   * @param statusIntervalSeconds The number of seconds between status updates.
+   * // @param statusIntervalSeconds The number of seconds between status updates.
+   * @param statusIntervalMs The number of milliseconds between status updates.
    * @param trackJVMStats         Whether or not to track JVM stats.
    */
   // public StatusThread(CountDownLatch completeLatch, List<ClientThread> clients,
@@ -109,14 +111,15 @@ public class StatusThread extends Thread {
   // }
 
   public StatusThread(CountDownLatch completeLatch, Map<MyThread, ClientThread> threads,
-                      String label, boolean standardstatus, int statusIntervalSeconds,
+                      String label, boolean standardstatus, int statusIntervalMs,
                       boolean trackJVMStats) {
     this.completeLatch = completeLatch;
     this.executors = threads.keySet();
     this.clients = threads.values();
     this.label = label;
     this.standardstatus = standardstatus;
-    sleeptimeNs = TimeUnit.SECONDS.toNanos(statusIntervalSeconds);
+    // sleeptimeNs = TimeUnit.SECONDS.toNanos(statusIntervalSeconds);
+    sleeptimeNs = TimeUnit.MILLISECONDS.toNanos(statusIntervalMs);
     measurements = Measurements.getMeasurements();
     this.trackJVMStats = trackJVMStats;
   }
@@ -192,7 +195,7 @@ public class StatusThread extends Thread {
     DecimalFormat d = new DecimalFormat("#.##");
     String labelString = this.label + format.format(new Date());
 
-    StringBuilder msg = new StringBuilder(labelString).append(" ").append(interval / 1000).append(" sec: ");
+    StringBuilder msg = new StringBuilder(labelString).append(" ").append(interval).append(" millisecond: ");
     msg.append(totalops).append(" operations; ");
 
     if (totalops != 0) {
