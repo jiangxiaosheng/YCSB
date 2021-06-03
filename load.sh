@@ -2,7 +2,7 @@
 
 set -ex
 
-THREAD_NUM=16
+THREAD_NUM=8
 REPLICATOR_ADDR="128.110.153.86:50050"
 REPLICATOR_BATCH_SIZE=10
 WORKLOAD=_test
@@ -39,8 +39,8 @@ done
 ./bin/ycsb.sh load rocksdb -s \
   -P workloads/workload${WORKLOAD}\
   -p rocksdb.dir=/users/$USER/test \
-  -p status.interval=100 \
+  -p status.interval=500 \
   -threads ${THREAD_NUM} \
-  -target 400000 \
+  -target 20000 \
   -replicator_addr ${REPLICATOR_ADDR} \
   -replicator_batch_size ${REPLICATOR_BATCH_SIZE}

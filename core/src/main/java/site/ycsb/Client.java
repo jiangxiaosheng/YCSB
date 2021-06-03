@@ -344,7 +344,9 @@ public final class Client {
     }
     int idx = 0;
     for(ClientThread client: clients) {
-      threads.put(new MyThread(tracer.wrap(client, "ClientThread"), chans.get(idx%numChan), client.getOpsTodo(), batch_size), client);
+      MyThread t = new MyThread(tracer.wrap(client, "ClientThread"), 
+                      chans.get(idx%numChan), client.getOpsTodo(), batch_size, idx);
+      threads.put(t, client);
       idx++;
     }
     // RUBBLE
@@ -373,28 +375,13 @@ public final class Client {
 
     try (final TraceScope span = tracer.newScope(CLIENT_WORKLOAD_SPAN)) {
 
-      // final Map<MyThread, ClientThread> threads = new HashMap<>(threadcount);
-      // String targetAddr = replicator_addr;
-      // int batch_size = replicator_batch_size;
-      // System.out.println("communicating with replicator at " + targetAddr);
-      // int numChan = 8;
-      // List<ManagedChannel> chans = new ArrayList<>();
-      // for(int i = 0; i<numChan; i++) {
-      //   chans.add(ManagedChannelBuilder.forTarget(targetAddr).usePlaintext().build());
-      // }
-      // int idx = 0;
-      // // int batch_size = 10;
-      // for(ClientThread client: clients) {
-      //   threads.put(new MyThread(tracer.wrap(client, "ClientThread"), chans.get(idx%numChan), client.getOpsTodo(), batch_size), client);
-      //   idx++;
-      // }
       st = System.currentTimeMillis();
       
-      // insert gRPC listening service here
-
+      // RUBBLE: start MyThread here
       for (MyThread t : threads.keySet()) {
         t.start();
       }
+      // RUBBLE
 
       if (maxExecutionTime > 0) {
         terminator = new TerminatorThread(maxExecutionTime, threads.keySet(), workload);
@@ -402,16 +389,17 @@ public final class Client {
       }
 
       opsDone = 0;
-
+      
+      // RUBBLE: join MyThread here
       for (Map.Entry<MyThread, ClientThread> entry : threads.entrySet()) {
         try {
-          // entry.getKey().waitLatch();
           entry.getKey().join();
           opsDone += entry.getValue().getOpsDone();
         } catch (InterruptedException ignored) {
           // ignored
         }
       }
+      // RUBBLE
 
       en = System.currentTimeMillis();
     }

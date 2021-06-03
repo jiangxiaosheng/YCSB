@@ -140,7 +140,7 @@ public class DBWrapper extends DB {
       long st = System.nanoTime();
       Status res = db.read(table, key, fields, result);
       long en = System.nanoTime();
-      measure("READ", res, ist, st, en);
+      // measure("READ", res, ist, st, en);
       measurements.reportStatus("READ", res);
       return res;
     }
@@ -203,7 +203,7 @@ public class DBWrapper extends DB {
       long st = System.nanoTime();
       Status res = db.update(table, key, values);
       long en = System.nanoTime();
-      measure("UPDATE", res, ist, st, en);
+      // measure("UPDATE", res, ist, st, en);
       measurements.reportStatus("UPDATE", res);
       return res;
     }
@@ -226,7 +226,7 @@ public class DBWrapper extends DB {
       long st = System.nanoTime();
       Status res = db.insert(table, key, values);
       long en = System.nanoTime();
-      measure("INSERT", res, ist, st, en);
+      // measure("INSERT", res, ist, st, en);
       measurements.reportStatus("INSERT", res);
       return res;
     }
@@ -245,7 +245,7 @@ public class DBWrapper extends DB {
       long st = System.nanoTime();
       Status res = db.delete(table, key);
       long en = System.nanoTime();
-      measure("DELETE", res, ist, st, en);
+      // measure("DELETE", res, ist, st, en);
       measurements.reportStatus("DELETE", res);
       return res;
     }

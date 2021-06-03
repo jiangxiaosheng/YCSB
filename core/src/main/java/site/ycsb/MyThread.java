@@ -7,6 +7,7 @@ import rubblejava.*;
 import io.grpc.stub.StreamObserver;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import site.ycsb.measurements.Measurements;
 
 /**
  * Custom thread with i/o streams and socket.
@@ -21,8 +22,10 @@ public class MyThread extends Thread {
   private final RubbleKvStoreServiceGrpc.RubbleKvStoreServiceStub asyncStub;
   private final int batch_size;
   private Op.Builder op_builder;
+  private final Measurements measurements;
+  private final int ob_id;
 
-  public MyThread(Runnable r, Channel channel, long target, int batch) {
+  public MyThread(Runnable r, Channel channel, long target, int batch, int ob_id) {
     this.r = r;
     this.target = target;
     this.sendCount = 0;
@@ -31,6 +34,8 @@ public class MyThread extends Thread {
     this.batch_size = batch;
     this.latch = this.createObserver();
     this.op_builder = Op.newBuilder();
+    this.measurements = Measurements.getMeasurements();
+    this.ob_id = ob_id;
   }
 
   public void run() {
@@ -38,6 +43,7 @@ public class MyThread extends Thread {
   }
 
   public CountDownLatch createObserver() {
+    System.out.println("id: " + this.ob_id + " target: " + target);
     final CountDownLatch finishLatch = new CountDownLatch(1);
     final long t = this.target;
     this.observer = asyncStub.doOp( new StreamObserver<OpReply>(){
@@ -46,14 +52,30 @@ public class MyThread extends Thread {
       @Override
       public void onNext(OpReply reply) {
         OpReply r  = reply;
-        // System.out.println("reply: " + reply.getReplies(0).getKey() /*+ "status: " + reply.getStatus()*/);
-        // System.out.println("recvCount: " + recvCount + " tar: " + tar);
         recvCount += r.getRepliesCount();
-        // System.out.println("recvCount: " + recvCount + " received");
-        if(recvCount == tar) {
-          System.out.println("recvCount: " + recvCount + " met target");
+        for (SingleOpReply rep: reply.getRepliesList()) {
+          switch (rep.getType()) {
+          case GET:
+            measurements.measure("READ", 10);
+            break;
+          case PUT:
+            measurements.measure("INSERT", 10);
+            break;
+          case DELETE:
+            measurements.measure("DELETE", 10);
+            break;
+          case UPDATE:
+            measurements.measure("UPDATE", 10);
+            break;
+          default:
+            throw new AssertionError("Unknown Reply Type Received.");
+          }
+        }
+        if(recvCount >= tar) {
+          System.out.println("id: " + ob_id  + " recvCount: " + recvCount + " met target");
           finishLatch.countDown();
         }
+
       }
 
       @Override
@@ -73,7 +95,7 @@ public class MyThread extends Thread {
 
   public void onNext(String k, String v, int seq, int op) {
     SingleOp operation = SingleOp.newBuilder().setKey(k).setValue(v)
-                     .setId(Thread.currentThread().getId()).setType(SingleOp.OpType.forNumber(op)).build();
+                     .setId(this.ob_id).setType(SingleOp.OpType.forNumber(op)).build();
 
     this.op_builder.addOps(operation);
     if (this.op_builder.getOpsCount() == this.batch_size) {
@@ -95,7 +117,7 @@ public class MyThread extends Thread {
   public void waitLatch(){
     try {
       this.latch.await();
-      System.out.println("returned from latch for thread " + this.getId());
+      System.out.println("returned from latch for thread " + this.ob_id);
     } catch(InterruptedException e) {
       e.printStackTrace();
     }
