@@ -36,7 +36,7 @@ public class Replicator {
     public Replicator(int ycsb_p, String[][] shards, int batch_size, int chan_num) {
       this.ycsb_port = ycsb_p;
       this.ycsb_server = ServerBuilder.forPort(ycsb_p)
-                    .executor(Executors.newFixedThreadPool(8))
+                    .executor(Executors.newFixedThreadPool(16))
                     .addService(new ReplicatorService(shards, batch_size, chan_num))
                     .build();
     }
@@ -215,6 +215,7 @@ public class Replicator {
                 int shard_idx = by[by.length -1]%mod_shard;
 
                 if (sop.getType() == SingleOp.OpType.GET){ // GET
+                  // System.out.println("--------GETGETGET------------------");
                   builder_ = get_builder.get(shard_idx);
                   builder_.addOps(sop);
                   if (builder_.getOpsCount() == batch_size ){
@@ -228,18 +229,19 @@ public class Replicator {
                     }
                   }
                 } else { //PUT
+                  // System.out.println("--------PUTPUTPUT------------------");
                   builder_ = put_builder.get(shard_idx);
                   builder_.addOps(sop);
-                    if (builder_.getOpsCount() == batch_size ){
-                      head_clients.get(shard_idx).onNext(builder_.build());
-                      put_builder.get(shard_idx).clear();
-                      // System.out.println("PUT batch to shard: " + shard_idx + " from thread: " + tid + " time: " + System.nanoTime());
-                      if (shard_idx == 0) {
-                        shard1head += batch_size;
-                      } else {
-                        shard2head += batch_size;
-                      }
+                  if (builder_.getOpsCount() == batch_size ){
+                    head_clients.get(shard_idx).onNext(builder_.build());
+                    put_builder.get(shard_idx).clear();
+                    // System.out.println("PUT batch to shard: " + shard_idx + " from thread: " + tid + " time: " + System.nanoTime());
+                    if (shard_idx == 0) {
+                      shard1head += batch_size;
+                    } else {
+                      shard2head += batch_size;
                     }
+                  }
                 }
               }
             }
@@ -293,37 +295,29 @@ public class Replicator {
       @Override
       public StreamObserver<OpReply> sendReply(final StreamObserver<Reply> ob) {
         return new StreamObserver<OpReply>(){
-          int opcount = 0;
+          // int opcount = 0;
           StreamObserver<OpReply> tmp;
             
           @Override
           public void onNext(OpReply op) {
             assert op.getRepliesCount() >0;
-            opcount += op.getRepliesCount();
-            if (op.getRepliesCount() % batch_size != 0) {
-              
-            }
-            if(opcount %100000 == 0) {
-              System.out.println("OpReply thread id: " + Thread.currentThread().getId() + " count: " + opcount);   
-            }
-            // System.out.println("SendReply forwarding to ycsb, opcount: " + opcount);
-
             try {
+              Long ttid = op.getReplies(0).getId();
+              replyCounts.putIfAbsent(ttid, new AtomicLong());
+              StreamObserver<OpReply> ycsbOb = ycsb_obs.get(ttid);
+              // System.out.println("ttid: " + ttid + " got a batch: " + op.getRepliesCount());
+              OpReply.Builder replyBuilder = replyBuilders.get(ycsbOb);
               for(SingleOpReply reply : op.getRepliesList()){
-                // possible routing error
-                Long ttid = reply.getId();
-                StreamObserver<OpReply> ycsbOb = ycsb_obs.get(reply.getId());
-                OpReply.Builder replyBuilder = replyBuilders.get(ycsbOb);
-                // TODO: hardcode to see if this solves the problem
                 Long ccount;
-                replyCounts.putIfAbsent(ttid, new AtomicLong());
-                if (((ccount = replyCounts.get(ttid).incrementAndGet()) % batch_size) <= 10 || ccount > batch_size - 10 ) {
+                if (((ccount = replyCounts.get(ttid).incrementAndGet()) % batch_size) <= 20 || ccount > batch_size - 20 ) {
                   synchronized(replyBuilder) {
                     // System.out.println("tid: " + ttid + " ccount: " + ccount);
                     replyBuilder.addReplies(reply);
                     if (ccount % batch_size == 0) {
                       ycsbOb.onNext(replyBuilder.build());
-                      // System.out.println("tid: " + ttid + " delivered at " + ccount + " with size " + replyBuilder.getRepliesCount());
+                      if (ccount % 100000 == 0) {
+                        System.out.println("tid: " + ttid + " delivered at " + ccount + " with size " + replyBuilder.getRepliesCount());
+                      }
                       replyBuilder.clear();
                     }
                   }
@@ -334,7 +328,7 @@ public class Replicator {
               
             } catch (Exception e) {
               e.printStackTrace();
-              System.out.println("at opcount: " + opcount + " error connecting to ycsb tmp ob " + op.getReplies(0).getId());
+              System.out.println("error connecting to ycsb tmp ob " + op.getReplies(0).getId());
               System.out.println("first key: " + op.getReplies(0).getKey());
             }
           }
