@@ -45,7 +45,7 @@ public class Replicator {
     this.tailStub = new RubbleKvStoreServiceStub[shardNum];
     this.port = Integer.parseInt(props.getProperty("port"));
     ServerBuilder serverBuilder = ServerBuilder.forPort(port).addService(new RubbleKvStoreService());
-    this.server = serverBuilder.executor(threadPoolExecutor).build();
+    this.server = serverBuilder.build();
     for (int i = 0; i < shardNum; i++) {
       headNode[i] = props.getProperty("head"+(i+1));
       tailNode[i] = props.getProperty("tail"+(i+1));
@@ -106,49 +106,31 @@ public class Replicator {
     RubbleKvStoreService() {}
 
     @Override
-    public StreamObserver<Op> doOp(final StreamObserver<OpReply> responseObserver) {
-      return new StreamObserver<Op>() { 
-        @Override
-        public void onNext(Op request) {
-          //LOGGER.info("send read request to tail");
-          int shard = (int)(Long.parseLong(request.getOps(0).getKey().substring(4)) % shardNum);
-          RubbleKvStoreServiceStub stub =
-              request.getOps(0).getType() == OpType.GET ? tailStub[shard] : headStub[shard];
-          StreamObserver<Op> observer =
-              stub.doOp(new StreamObserver<OpReply>() {
-                  @Override
-                  public void onNext(OpReply reply) {
-                    //LOGGER.info("receive read reply from tail " + reply.getStatus(0) + " " + reply.getContent(0));
-                    //LOGGER.info("reply to YCSB");
-                    responseObserver.onNext(reply);
-                  }
+    public void doOp(Op request, final StreamObserver<OpReply> responseObserver) {
+      //LOGGER.info("send read request to tail");
+      int shard = (int)(Long.parseLong(request.getOps(0).getKey().substring(4)) % shardNum);
+      RubbleKvStoreServiceStub stub =
+          request.getOps(0).getType() == OpType.GET ? tailStub[shard] : headStub[shard];
+      stub.doOp(request, new StreamObserver<OpReply>() {
+          @Override
+          public void onNext(OpReply reply) {
+            //LOGGER.info("receive read reply from tail " + reply.getStatus(0) + " " + reply.getContent(0));
+            //LOGGER.info("reply to YCSB");
+            responseObserver.onNext(reply);
+          }
 
-                  @Override
-                  public void onError(Throwable t) {
-                    LOGGER.error("error in read", t);
-                  }
+          @Override
+          public void onError(Throwable t) {
+            LOGGER.error("error in read", t);
+          }
 
-                  @Override
-                  public void onCompleted() {
-                    //LOGGER.info("onCompleted from tail");
-                    //LOGGER.info("onCompleted to YCSB");
-                    responseObserver.onCompleted();
-                  }
-              });
-          observer.onNext(request);
-          observer.onCompleted();
-        }
-
-        @Override
-        public void onError(Throwable t) {
-          LOGGER.error("Encountered error in read", t);
-        }
-
-        @Override
-        public void onCompleted() {
-          //LOGGER.info("onCompleted to tail");
-        }
-      };
+          @Override
+          public void onCompleted() {
+            //LOGGER.info("onCompleted from tail");
+            //LOGGER.info("onCompleted to YCSB");
+            responseObserver.onCompleted();
+          }
+      });
     }
   }
 }

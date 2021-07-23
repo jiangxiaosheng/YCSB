@@ -63,7 +63,7 @@ public class ChainNode {
       this.nextStub = RubbleKvStoreServiceGrpc.newStub(this.nextChannel);
     }
     ServerBuilder serverBuilder = ServerBuilder.forPort(port).addService(new RubbleKvStoreService());
-    this.server = serverBuilder.executor(threadPoolExecutor).build();
+    this.server = serverBuilder.build();
     this.table = props.getProperty("table", "usertable");
     String dbname = props.getProperty("db", "site.ycsb.BasicDB");
     statusIntervalNS = 1000000 * Integer.parseInt(props.getProperty("status.interval", "10"));
@@ -159,85 +159,69 @@ public class ChainNode {
   private class RubbleKvStoreService extends RubbleKvStoreServiceGrpc.RubbleKvStoreServiceImplBase {
     RubbleKvStoreService() {}
 
+    public Status process(Op request, int i) {
+      OpType type = request.getOps(i).getType();
+      String key = request.getOps(i).getKey();
+      String value = null;
+      Map<String, ByteIterator> values = new HashMap<>();
+      switch (type) {
+      case GET:
+        return db.read(table, key, null, values);
+
+      case PUT:
+        value = request.getOps(i).getValue();
+        RocksDBClient.deserializeValues(value.getBytes(UTF_8), null, values);
+        return db.insert(table, key, values);
+
+      case UPDATE:
+        value = request.getOps(i).getValue();
+        RocksDBClient.deserializeValues(value.getBytes(UTF_8), null, values);
+        return db.update(table, key, values);
+
+      default:
+        System.err.println("Unsupported op type: " + type);
+        break;
+      }
+
+      return Status.ERROR;
+    }
+
     @Override
-    public StreamObserver<Op> doOp(final StreamObserver<OpReply> responseObserver) {
-      return new StreamObserver<Op>() {
-        public Status process(Op request, int i) {
-          OpType type = request.getOps(i).getType();
-          String key = request.getOps(i).getKey();
-          String value = null;
-          Map<String, ByteIterator> values = new HashMap<>();
-          switch (type) {
-            case GET:
-              return db.read(table, key, null, values);
+    public void doOp(Op request, final StreamObserver<OpReply> responseObserver) {
+      //LOGGER.info("receive request from previous node");
+      boolean isWrite = request.getOps(0).getType() != OpType.GET;
+      OpReply.Builder builder = OpReply.newBuilder();
+      SingleOpReply.Builder replyBuilder = SingleOpReply.newBuilder();
+      int batchSize = request.getBatchSize();
+      builder.setBatchSize(batchSize);
 
-            case PUT:
-              value = request.getOps(i).getValue();
-              RocksDBClient.deserializeValues(value.getBytes(UTF_8), null, values);
-              return db.insert(table, key, values);
-
-            case UPDATE:
-              value = request.getOps(i).getValue();
-              RocksDBClient.deserializeValues(value.getBytes(UTF_8), null, values);
-              return db.update(table, key, values);
-
-            default:
-              System.err.println("Unsupported op type: " + type);
-              break;
-          }
-
-          return Status.ERROR;
+      for (int i = 0; i < batchSize; i++) {
+        Status res = process(request, i);
+        if (isWrite) {
+          writeOpsDone.accumulate(1);
+        } else {
+          readOpsDone.accumulate(1);
         }
-
-        @Override
-        public void onNext(Op request) {
-          //LOGGER.info("receive request from previous node");
-          boolean isWrite = request.getOps(0).getType() != OpType.GET;
-          OpReply.Builder builder = OpReply.newBuilder();
-          SingleOpReply.Builder replyBuilder = SingleOpReply.newBuilder();
-          int batchSize = request.getBatchSize();
-          builder.setBatchSize(batchSize);
-
-          for (int i = 0; i < batchSize; i++) {
-            Status res = process(request, i);
-            if (isWrite) {
-              writeOpsDone.accumulate(1);
-            } else {
-              readOpsDone.accumulate(1);
-            }
-            if (!res.isOk() && !res.equals(Status.NOT_FOUND)) {
-              LOGGER.error("Some request failed!");
-              replyBuilder.setOk(false);
-            } else {
-              replyBuilder.setOk(true);
-            }
-            replyBuilder.setStatus(res.getName());
-            replyBuilder.setType(request.getOps(i).getType());
-            builder.addReplies(replyBuilder.build());
-          }
-
-          if (nodeType.equals(TAIL)) {
-            //LOGGER.info("reply to replicator");
-            builder.addTime(request.getTime(0));
-            responseObserver.onNext(builder.build());
-            responseObserver.onCompleted();
-          } else {
-            //LOGGER.info("forward to next node");
-            StreamObserver<Op> requestObserver = nextStub.doOp(responseObserver);
-            requestObserver.onNext(request);
-            requestObserver.onCompleted();
-          }
+        if (!res.isOk() && !res.equals(Status.NOT_FOUND)) {
+          LOGGER.error("Some request failed!");
+          replyBuilder.setOk(false);
+        } else {
+          replyBuilder.setOk(true);
         }
+        replyBuilder.setStatus(res.getName());
+        replyBuilder.setType(request.getOps(i).getType());
+        builder.addReplies(replyBuilder.build());
+      }
 
-        @Override
-        public void onError(Throwable t) {
-          LOGGER.error("Encountered error in read", t);
-        }
-
-        @Override
-        public void onCompleted() {
-        }
-      };
+      if (nodeType.equals(TAIL)) {
+        //LOGGER.info("reply to replicator");
+        builder.addTime(request.getTime(0));
+        responseObserver.onNext(builder.build());
+        responseObserver.onCompleted();
+      } else {
+        //LOGGER.info("forward to next node");
+        nextStub.doOp(request, responseObserver);
+      }
     }
   }
 }

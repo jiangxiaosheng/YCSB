@@ -232,8 +232,6 @@ public class DBWrapper extends DB {
     };
 
 
-    StreamObserver<Op> requestObserver = asyncStub.doOp(replyObserver);
-
     Op.Builder builder = Op.newBuilder();
     SingleOp.Builder opBuilder = SingleOp.newBuilder();
     builder.setBatchSize(batchSize);
@@ -249,8 +247,7 @@ public class DBWrapper extends DB {
     // LIMITER.acquire();
     // LOGGER.info("send batch " + batchSize);
     builder.addTime(System.nanoTime());
-    requestObserver.onNext(builder.build());
-    requestObserver.onCompleted();
+    asyncStub.doOp(builder.build(), replyObserver);
     if (isWrite) {
       writeBatchSize[shard] = 0;
     } else {
