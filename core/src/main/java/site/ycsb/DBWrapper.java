@@ -70,7 +70,7 @@ public class DBWrapper extends DB {
   // [Rubble]
   private int shardIdx;
   private int clientIdx;
-  private StreamObserver<Op> requestObserver;
+  // private StreamObserver<Op> requestObserver;
   private StreamObserver<OpReply> replyObserver;
   private final LongAccumulator opsdone = new LongAccumulator(Long::sum, 0L);
   private int opcount;
@@ -190,9 +190,9 @@ public class DBWrapper extends DB {
           }
         }
         opsdone.accumulate(batchSize);
-        if (opsdone.intValue() == opcount) {
-          requestObserver.onCompleted();
-        }
+        // if (opsdone.intValue() == opcount) {
+        //   requestObserver.onCompleted();
+        // }
       }
 
       @Override
@@ -202,11 +202,10 @@ public class DBWrapper extends DB {
 
       @Override
       public void onCompleted() {
-        LOGGER.info("onCompleted from replicator");
-        // LIMITER.release();
+        // LOGGER.info("onCompleted from replicator");
       }
     };
-    requestObserver = asyncStub.doOp(replyObserver);
+    // requestObserver = asyncStub.doOp(replyObserver);
     writeTypes = new OpType[DB.BATCHSIZE];
     writeKeys  = new String[DB.BATCHSIZE];
     writeVals  = new String[DB.BATCHSIZE];
@@ -262,10 +261,11 @@ public class DBWrapper extends DB {
       builder.addOps(opBuilder.build());
     }
 
-    // LIMITER.acquire();
     // LOGGER.info("send batch " + batchSize);
     builder.addTime(System.nanoTime());
-    requestObserver.onNext(builder.build());
+    // requestObserver.onNext(builder.build());
+    Op op = builder.build();
+    asyncStub.doOp(op, replyObserver);
     if (isWrite) {
       writeBatchSize = 0;
     } else {

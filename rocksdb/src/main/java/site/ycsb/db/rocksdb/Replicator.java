@@ -12,14 +12,12 @@ import io.grpc.ManagedChannelBuilder;
 import site.ycsb.*;
 import site.ycsb.RubbleKvStoreServiceGrpc.RubbleKvStoreServiceStub;
 
-import java.util.Map;
-import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.io.IOException;
-import java.util.concurrent.atomic.LongAccumulator;
+// import java.util.concurrent.atomic.LongAccumulator;
 
 /**
  * Replicator in chain replication.
@@ -35,7 +33,6 @@ public class Replicator {
   private final ManagedChannel[] tailChannel;
   private final RubbleKvStoreServiceStub[] headStub;
   private final RubbleKvStoreServiceStub[] tailStub;
-  private final Map<Integer, StreamObserver> observerMap;
   private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(16);
   private static final Logger LOGGER = LoggerFactory.getLogger(Replicator.class);
   
@@ -47,7 +44,6 @@ public class Replicator {
     this.tailChannel = new ManagedChannel[shardNum];
     this.headStub = new RubbleKvStoreServiceStub[shardNum];
     this.tailStub = new RubbleKvStoreServiceStub[shardNum];
-    this.observerMap = new HashMap<Integer, StreamObserver>();
     this.port = Integer.parseInt(props.getProperty("port"));
     ServerBuilder serverBuilder = ServerBuilder.forPort(port).addService(new RubbleKvStoreService());
     this.server = serverBuilder.build();
@@ -108,120 +104,16 @@ public class Replicator {
   }
 
   private class RubbleKvStoreService extends RubbleKvStoreServiceGrpc.RubbleKvStoreServiceImplBase {
-    private final LongAccumulator observerAccumulator = new LongAccumulator(Long::sum, 0L);
     RubbleKvStoreService() {}
 
     @Override
-    public StreamObserver<OpReply> sendReply(final StreamObserver<Reply> responseObserver) {
-      return new StreamObserver<OpReply>() {
-        private int idx = -1;
-
-        @Override
-        public void onNext(OpReply reply) {
-          idx = reply.getClientIdx();
-          synchronized (observerMap.get(idx)) {
-            observerMap.get(idx).onNext(reply);
-          }
-        }
-
-        @Override
-        public void onError(Throwable t) {
-          LOGGER.error("Encountered error in sendReply", t);
-        }
-
-        @Override
-        public void onCompleted() {
-          observerAccumulator.accumulate(-1);
-          System.out.println("observerAccumulator " + observerAccumulator.longValue());
-          if (observerAccumulator.longValue() == 0) {
-            System.out.println("observerMap[" + idx + "].onCompleted() " + observerMap.get(idx));
-            observerMap.get(idx).onCompleted();
-          }
-          responseObserver.onCompleted();
-        }
-      };
-    }
-
-    @Override
-    public StreamObserver<Op> doOp(final StreamObserver<OpReply> responseObserver) {
-      return new StreamObserver<Op>() {
-        private StreamObserver<Op> headObserver = null;
-        private StreamObserver<Op> tailObserver = null;
-        private StreamObserver<OpReply> headReplyObserver = null;
-        private StreamObserver<OpReply> tailReplyObserver = null;
-
-        private void buildObserver(boolean isHead) {
-          StreamObserver<OpReply> observer = new StreamObserver<OpReply>() {
-              @Override
-              public void onNext(OpReply reply) {
-                LOGGER.error("[dumbObserver.onNext] should not reach here");
-              }
-
-              @Override
-              public void onError(Throwable t) {
-                LOGGER.error("error in dumbObserver", t);
-              }
-
-              @Override
-              public void onCompleted() {
-                System.out.println("dumbObserver.onCompleted()");
-              }
-          };
-
-          if (isHead) {
-            headReplyObserver = observer;
-          } else {
-            tailReplyObserver = observer;
-          }
-        }
-
-        @Override
-        public void onNext(Op request) {
-          //LOGGER.info("send read request to tail");
-          int shard = request.getShardIdx();
-          int client = request.getClientIdx();
-          if (responseObserver != observerMap.get(client)) {
-            System.out.println("observerMap[" + client + "] changes from " + 
-                observerMap.get(client) + " to " + responseObserver);
-            observerMap.put(client, responseObserver);
-          }
-          if (request.getOps(0).getType() == OpType.GET) {
-          // if (request.getOps(0).getType() == OpType.UNRECOGNIZED) { // send all requests to the head for debugging
-            if (tailObserver == null) {
-              buildObserver(false);
-              tailObserver = tailStub[shard].doOp(tailReplyObserver);
-              observerAccumulator.accumulate(1);
-              System.out.println("observerAccumulator " + observerAccumulator.longValue());
-            }
-            tailObserver.onNext(request);
-          } else {
-            if (headObserver == null) {
-              buildObserver(true);
-              headObserver = headStub[shard].doOp(headReplyObserver);
-              observerAccumulator.accumulate(1);
-              System.out.println("observerAccumulator " + observerAccumulator.longValue());
-            }
-            headObserver.onNext(request);
-          }
-        }
-
-        @Override
-        public void onError(Throwable t) {
-          LOGGER.error("Encountered error in doOp", t);
-        }
-
-        @Override
-        public void onCompleted() {
-          if (tailObserver != null) {
-            tailObserver.onCompleted();
-            System.out.println("tailObserver.onCompleted()");
-          }
-          if (headObserver != null) {
-            headObserver.onCompleted();
-            System.out.println("headObserver.onCompleted()");
-          }
-        }
-      };
+    public void doOp(Op request, final StreamObserver<OpReply> responseObserver) {
+      int shard = request.getShardIdx();
+      if (request.getOps(0).getType() == OpType.GET) {
+        tailStub[shard].doOp(request, responseObserver);
+      } else {
+        headStub[shard].doOp(request, responseObserver);
+      }
     }
   }
 }
