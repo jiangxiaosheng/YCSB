@@ -23,9 +23,12 @@ import java.io.IOException;
 import java.util.concurrent.atomic.LongAccumulator;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
 // import java.util.Arrays;
 import java.sql.Timestamp;
-
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.concurrent.locks.*;
 
 /**
  * Replicator in chain replication.
@@ -54,6 +57,101 @@ public class Replicator {
   private final LongAccumulator opssent = new LongAccumulator(Long::sum, 0L); 
   private final LongAccumulator maxThreads = new LongAccumulator(Long::sum, 0L);
   // HEARTBEAT
+
+  // RECOVERY
+  private static final long FAILED_OP_WATERMARK = 5000000L;
+  private final RecoveryHelper recoveryHelper;
+  private final LongAccumulator opsHandled = new LongAccumulator(Long::sum, 0L);
+  private static Lock recoveryProcessLock = new ReentrantLock();
+  private static boolean doFail = true;
+  // RECOVERY
+
+  private final class RecoveryHelper {
+    private String tailToKillHost;
+    private RubbleKvStoreServiceBlockingStub headBlockingStub;
+
+    private RecoveryHelper(String tailHost, RubbleKvStoreServiceBlockingStub stub) {
+      this.tailToKillHost = tailHost;
+      this.headBlockingStub = stub;
+    }
+
+    public void executeCommands(List<String> commands) {
+      try {
+        ProcessBuilder pb = new ProcessBuilder(commands);
+        Process process = pb.start();
+        LOGGER.info("execute command: " + String.join(" ", commands.toArray(String[]::new)));
+
+        StringBuilder out = new StringBuilder();
+        BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        String line = null, previous = null;
+        while ((line = br.readLine()) != null) {
+          if (!line.equals(previous)) {
+            previous = line;
+            out.append(line).append('\n');
+          }
+        }
+        if (!out.toString().isBlank()) {
+          LOGGER.info(out.toString());
+        }
+
+        //Check result
+        if (process.waitFor() != 0) {
+          out = new StringBuilder();
+          br = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+          while ((line = br.readLine()) != null) {
+            if (!line.equals(previous)) {
+              previous = line;
+              out.append(line).append('\n');
+            }
+          }
+          if (!out.toString().isBlank()) {
+            LOGGER.error("error: " + out.toString());
+          }
+        }
+      } catch (Exception e) {
+        e.printStackTrace();
+        System.exit(1);
+      }
+    }
+
+    public void killTail() {
+      LOGGER.info("killing the tail node...");
+      List<String> killCommand = Arrays.asList("sudo", "killall", "db_node");
+      List<String> commands = new ArrayList<String>(Arrays.asList("bash", "-c",
+          String.format("ssh %s \"%s\"", tailToKillHost, String.join(" ", killCommand))));
+      executeCommands(commands);
+      LOGGER.info("tail node is killed!");
+    }
+
+    public void restartTail() {
+      LOGGER.info("restarting the tail node...");
+      List<String> runCommands = Arrays.asList(
+          "cd /mnt/data/my_rocksdb/rubble;",
+          "ulimit -n 999999;",
+          "ulimit -c unlimited;",
+          "sudo killall db_node dstat iostat perf top > /dev/null 2>&1;",
+          "sudo bash clean.sh 1 > /dev/null 2>&1;",
+          "nohup sudo " +
+          // cgexec -g cpuset:rubble-cpu -g memory:rubble-mem 
+          "./db_node 50050 10.10.1.1:50040 0 2 3 > shard-0.out 2>&1 &"
+      );
+      List<String> commands = new ArrayList<String>(Arrays.asList("bash", "-c",
+          String.format("ssh %s \"%s\"", tailToKillHost, String.join(" ", runCommands))));
+      executeCommands(commands);
+      LOGGER.info("tail node restarted");
+    }
+
+    public void headFailOver() {
+      // head doesn't need to wait for tail db_node restarts
+      // it can immediately re-ship SSTs
+      assert(headStub[0] != null);
+      
+      FailOverRequest request = FailOverRequest.newBuilder().build();
+      LOGGER.info("start failover the head...");
+      FailOverReply reply = headBlockingStub.headFailOver(request);
+      LOGGER.info("failover the head done");
+    }
+  }
   
   public Replicator() throws IOException {
     this.shardNum = Integer.parseInt(props.getProperty("shard"));
@@ -104,6 +202,8 @@ public class Replicator {
       // }
       // HEARTBEAT
     }
+    this.recoveryHelper = new RecoveryHelper(tailNode[0].split(":")[0],
+        RubbleKvStoreServiceGrpc.newBlockingStub(this.headChannel[0]));
   }
 
   public void start() throws IOException {
@@ -326,6 +426,19 @@ public class Replicator {
             headObserver.onNext(request);
             opssent.accumulate(request.getOpsCount());
           }
+          // recovery:
+          recoveryProcessLock.lock();
+          if (doFail) {
+            opsHandled.accumulate(request.getOpsCount());
+            LOGGER.info("current ops handled: " + opsHandled.get());
+            if (opsHandled.get() >= FAILED_OP_WATERMARK) {
+              recoveryHelper.killTail();
+              recoveryHelper.restartTail();
+              recoveryHelper.headFailOver();
+              doFail = false;
+            }
+          }
+          recoveryProcessLock.unlock();
 
           // also send termination message to the head to clean all buffered requests in
           // secondaries because read threads don't buffer anything

@@ -19,6 +19,20 @@ service RubbleKvStoreService {
     rpc SendReply(stream OpReply) returns (stream Reply){}
 
     rpc Pulse(PingRequest)  returns (Empty){}
+
+    rpc HeadFailOver(FailOverRequest) returns (FailOverReply) {}
+
+    rpc MiddleFailOver(FailOverRequest) returns (FailOverReply) {}
+
+    rpc WaitForTailRecovery(FailOverRequest) returns (FailOverReply) {}
+}
+
+message FailOverRequest {
+    int32 memtable_id = 1;
+}
+
+message FailOverReply {
+
 }
 
 enum OpType {
@@ -27,6 +41,7 @@ enum OpType {
     DELETE = 2;
     UPDATE = 3;
 	SCAN = 4;
+    RECOVER = 5;
 }
 
 message Op {

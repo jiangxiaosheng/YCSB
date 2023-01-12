@@ -198,7 +198,7 @@ replicator_args=$(assemble_args)
     -p port=$replicator_port $replicator_args -p replica=$rf > replicator.out 2>&1 &
 
 # 3. load the database
-update_workload_file $shard_num
+# update_workload_file $shard_num
 sleep_ms=1000
 echo "" > ycsb.out
 if [ $phase != load ]; then

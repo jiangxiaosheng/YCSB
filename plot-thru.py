@@ -27,15 +27,18 @@ with open(file_name, 'r') as f:
                 agg_cnt += 1
 
                 data[-1] += float(nums[6])
+                # print(data[-1])
 
         line = f.readline()
 
     if agg_cnt % agg_num != 0:
         if len(data) > 0:
             data[-1] /= agg_num
+            
 
 time = [i * agg_num for i in range(len(data))]
-
+print(data)
+print(len(data))
 plt.figure()
 
 # cut off unstable data points
@@ -48,7 +51,7 @@ data = data[start_secs_cut : -end_secs_cut]
 plt.plot(time, data, label='YCSB')
 plt.xlabel('Second')
 plt.ylabel('Throughput (op/s)')
-plt.ylim([0, 200000])
+plt.ylim([0, 30000])
 plt.legend()
 plt.savefig(path + figure_name + '.jpg')
 plt.close()
